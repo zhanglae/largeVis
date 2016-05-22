@@ -12,12 +12,12 @@ using namespace Rcpp;
 using namespace std;
 
 // The Euclidean distance between two vectors
-inline double dist(NumericVector i, NumericVector j) {
+inline double dist(NumericVector& i, NumericVector& j) {
   return sum(pow(i - j, 2));
 }
 
-inline double dist(arma::vec i, arma::vec j) {
-  return sum(pow(i - j, 2));
+inline double dist(const arma::vec& i, const arma::vec& j) {
+  return sum(square(i - j));
 }
 
 /*
