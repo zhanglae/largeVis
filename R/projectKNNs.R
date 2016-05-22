@@ -60,7 +60,7 @@ projectKNNs <- function(wij, # symmetric sparse matrix
                         min_rho = 0.1,
                         verbose = TRUE) {
   N <-  (length(wij@p) -1)
-  js <- rep(0:(N-1), diff(wij@p))
+  js <- rep(0:(N - 1), diff(wij@p))
   is <- wij@i
 
   ##############################################

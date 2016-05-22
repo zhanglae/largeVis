@@ -10,7 +10,7 @@ LazyData: TRUE
 RoxygenNote: 5.0.1
 Depends:
     R (>= 2.10)
-Imports: proxy,
+Imports:
     Matrix,
     parallel,
     Rcpp (>= 0.12.4),
@@ -22,7 +22,10 @@ Suggests: testthat,
     covr,
     knitr,
     rmarkdown,
-    ggplot2
+    ggplot2,
+    wesanderson,
+    RColorBrewer,
+    FNN
 URL: https://github.com/elbamos/largeVis
 BugReports: https://github.com/elbamos/largeVis/issues
 NeedsCompilation: yes

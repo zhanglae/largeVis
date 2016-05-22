@@ -7,7 +7,6 @@
 #' distinct partitionable clusters, try increasing the \code{tree_threshold} to increase the number
 #' of returned neighbors.
 #'
-#'
 #' @param x A matrix.
 #' @param K How many nearest neighbors to seek for each node.
 #' @param n_trees The number of trees to build.
@@ -23,15 +22,13 @@
 #' @examples
 #'
 randomProjectionTreeSearch <- function(x,
-                                       K = 5, #
+                                       K = 5,
                                        n_trees = 2,
                                        tree_threshold =  max(10, nrow(x)),
                                        max_iter = 2,
                                        max_depth = 32,
                                        verbose= TRUE) {
-  N <- nrow(x)
-
-  if (verbose) cat("Searching for neighbors.\n")
+   if (verbose) cat("Searching for neighbors.\n")
 
   knns <- searchTrees(threshold = tree_threshold,
                       n_trees = n_trees,

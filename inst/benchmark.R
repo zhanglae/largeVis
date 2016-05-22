@@ -1,8 +1,8 @@
 benchmark <- function(path,
                            K = 40,
-                           tree_range = c(10,20,50,100),
-                           thresholds = c(10,20,50,100),
-                           iters = c(1,2,5,10),
+                           tree_range = c(10, 20, 50, 100),
+                           thresholds = c(10, 20, 50, 100),
+                           iters = c(1, 2, 5, 10),
                            n = 10) {
   data <- readr::read_delim(path, delim = " ", col_names = F)
   data <- as.matrix(data)
@@ -12,14 +12,17 @@ benchmark <- function(path,
   samples <- sample(nrow(data), n, replace = F)
 
   actualneighbors <- FNN::get.knnx(
-    data, data[samples,], K, algorithm = 'kd_tree'
+    data, data[samples, ], K, algorithm = "kd_tree"
   )$nn.index
 
   print(str(actualneighbors))
   data <- t(data)
 
-  results <- data.frame(time = numeric(0), precision = numeric(0), n_trees = numeric(0),
-                        max_iterations = numeric(0), tree_threshold = numeric(0))
+  results <- data.frame(time = numeric(0),
+                        precision = numeric(0),
+                        n_trees = numeric(0),
+                        max_iterations = numeric(0),
+                        tree_threshold = numeric(0))
 
   lapply(tree_range, FUN = function(n_trees) {
     lapply(iters, FUN = function(max_iters) {
@@ -30,27 +33,27 @@ benchmark <- function(path,
                                              K, n_trees, threshold, max_iters,
                                              verbose = TRUE)
         )
-        precision <- lapply(1:n, FUN = function(x)  sum(knns[,samples[x]] %in% actualneighbors[x,]))
+        precision <- lapply(1:n, FUN = function(x)  sum(knns[, samples[x]] %in% actualneighbors[x, ]))
         print(time)
         print(sum(as.numeric(precision)))
-		
+
         one_result <- data.frame(
                            time = time[1] + time[5],
-                           precision = sum(as.numeric(precision))/n,
+                           precision = sum(as.numeric(precision)) / n,
                            n_trees = n_trees,
                            max_iterations = max_iters,
                            tree_threshold = threshold)
-	print(one_result)
-	results <- rbind(results, one_result) 
+  print(one_result)
+  results <- rbind(results, one_result)
       })
     })
   })
   return(results)
 }
 
-require(largeVis)
+require( largeVis )
 path <- "/mnt/hfsshare/DATASETS/sift/siftknns.txt"
 
-results <- benchmark(path, n = 10000)
+results <- benchmark(path, n = 10000, K = 1000)
 print(results)
 save(results, "benchmark.Rda")

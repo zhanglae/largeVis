@@ -94,7 +94,7 @@ vis <- function(x,
   N <- ncol(x)
 
   if (check.assumptions)   {
-    if ((any(is.na(x)) +
+    if ( (any(is.na(x)) +
          any(is.infinite(x)) +
          any(is.nan(x))) > 0)
       stop("Missing values present in input matrix.")
@@ -118,7 +118,7 @@ vis <- function(x,
   # These vectors are analogous to the components of a sparse matrix,
   # but both triple and C-compressed forms are created.
   # The i and j vectors are 0-indexed while p is 1-indexed.
-  is <- rep(0:(N-1), each = K)
+  is <- rep(0:(N - 1), each = K)
   js <- as.vector(knns)
   is <- is[! js == -1]
   js <- js[! js == -1]
@@ -128,7 +128,7 @@ vis <- function(x,
   ord <- order(is)
   is <- is[ord]
   js <- js[ord]
-  ps <- rep(NA,N + 1)
+  ps <- rep(NA, N + 1)
   diffs <- diff(is)
   ps[is[which(diffs > 0)] + 2] <- which(diffs > 0) + 1
   good <- cumsum(!is.na(ps))
@@ -141,18 +141,18 @@ vis <- function(x,
   #######################################################
   if (verbose) cat("Calculating neighbor distances.\n")
 
-  xs <- distance(is, js, x, verbose)[,1]
+  xs <- distance(is, js, x, verbose)[, 1]
 
   if (verbose) cat("\n")
 
-  if ((any(is.na(xs)) + any(is.infinite(xs)) + any(is.nan(xs)) + any(xs == 0)) > 0)
+  if ( (any(is.na(xs)) + any(is.infinite(xs)) + any(is.nan(xs)) + any(xs == 0)) > 0)
   stop("An error leaked into the distance calculation - check for duplicates")
 
   ########################################################
   # Estimate sigmas
   ########################################################
   if (verbose) {
-    progress = txtProgressBar(max = N, title = "sigmas")
+    progress <- txtProgressBar(max = N, title = "sigmas")
     cat("Estimating sigmas\n")
   }
 
@@ -163,25 +163,25 @@ vis <- function(x,
     ret <- optimize(f = sigFunc,
              x = x_i,
              perplexity = perplexity,
-             interval = c(0,10000))
+             interval = c(0, 10000))
   })
   sigmas <- sapply(sigmas, `[[`, 1)
 
   if (verbose) close(progress)
 
-  if (any(is.na(sigmas)) + any(is.infinite(sigmas)) + any(is.nan(sigmas)) + any((sigmas == 0)) > 0)
+  if (any(is.na(sigmas)) + any(is.infinite(sigmas)) + any(is.nan(sigmas)) + any( (sigmas == 0)) > 0)
     stop("An error has propogated into the sigma vector.")
 
   #######################################################
   # Calculate w_{ij}
   #######################################################
 
-  if (! requireNamespace('Matrix',quietly=T)) stop("The Matrix package must be available.")
+  if (! requireNamespace("Matrix", quietly = T)) stop("The Matrix package must be available.")
 
   if (verbose) cat("Calculating w_{ij}.\n")
   wij <- distMatrixTowij(is, js, xs, sigmas, N, verbose)
 
-  if (any(is.na(wij@x)) || any(is.infinite(wij@x)) || any(is.nan(wij@x)) || any((wij@x == 0)) > 0)
+  if (any(is.na(wij@x)) || any(is.infinite(wij@x)) || any(is.nan(wij@x)) || any( (wij@x == 0)) > 0)
     stop("An error has propogated into the w_{ij} vector.  This probably means the input data wasn't scaled.")
 
   # Symmetricize
@@ -217,7 +217,7 @@ vis <- function(x,
     sigmas = sqrt(sigmas / 2)
   )
 
-  class(returnvalue) <- 'largeVis'
+  class(returnvalue) <- "largeVis"
   return(returnvalue)
 }
 
