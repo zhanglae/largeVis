@@ -1,9 +1,9 @@
 benchmark <- function(path,
                            K = 40,
                            tree_range = c(10,20,50,100),
-                           thresholds = c(10, 20, 50, 100),
-                           iters = c(1,2,5),
-                           n = 10000) {
+                           thresholds = c(10,20,50,100),
+                           iters = c(1,2,5,10),
+                           n = 10) {
   data <- readr::read_delim(path, delim = " ", col_names = F)
   data <- as.matrix(data)
   data <- scale(data)
@@ -12,7 +12,7 @@ benchmark <- function(path,
   samples <- sample(nrow(data), n, replace = F)
 
   actualneighbors <- FNN::get.knnx(
-    data, data[samples,], K, algorithm = 'brute'
+    data, data[samples,], K, algorithm = 'kd_tree'
   )$nn.index
 
   print(str(actualneighbors))
@@ -27,19 +27,21 @@ benchmark <- function(path,
         print(paste(n_trees, max_iters, threshold))
         time <- system.time(
           knns <- randomProjectionTreeSearch(data,
-                                             K, n_trees, tree_threshold, max_iter,
+                                             K, n_trees, threshold, max_iters,
                                              verbose = TRUE)
         )
         precision <- lapply(1:n, FUN = function(x)  sum(knns[,samples[x]] %in% actualneighbors[x,]))
         print(time)
-        print(precision)
-        results <- cbind(results,
-                         data.frame(
-                           time = time$user,
-                           precision = precision,
+        print(sum(as.numeric(precision)))
+		
+        one_result <- data.frame(
+                           time = time[1] + time[5],
+                           precision = sum(as.numeric(precision))/n,
                            n_trees = n_trees,
                            max_iterations = max_iters,
-                           tree_threshold = threshold))
+                           tree_threshold = threshold)
+	print(one_result)
+	results <- rbind(results, one_result) 
       })
     })
   })
@@ -49,6 +51,6 @@ benchmark <- function(path,
 require(largeVis)
 path <- "/mnt/hfsshare/DATASETS/sift/siftknns.txt"
 
-results <- benchmark(path)
+results <- benchmark(path, n = 10000)
 print(results)
 save(results, "benchmark.Rda")
