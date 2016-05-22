@@ -11,9 +11,9 @@ benchmark <- function(path,
 
   samples <- sample(nrow(data), n, replace = F)
 
-  actualneighbors <- FNN::get.knnx(
-    data, data[samples, ], K, algorithm = "kd_tree"
-  )$nn.index
+  actualneighbors <- RANN::nn2(
+    data, data[samples, ], k = K, treetype='kd',
+  )$nn.idx - 1
 
   print(str(actualneighbors))
   data <- t(data)
