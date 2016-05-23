@@ -1,21 +1,29 @@
 benchmark <- function(path,
+                      samplepath,
                            K = 40,
-                           tree_range = c(10, 20, 50, 100),
+                           tree_range = c(10, 20, 50),
                            thresholds = c(10, 20, 50, 100),
-                           iters = c(1, 2, 5, 10),
+                           iters = c(1, 2, 3),
                            n = 10) {
   data <- readr::read_delim(path, delim = " ", col_names = F)
   data <- as.matrix(data)
   data <- scale(data)
   cat("Getting actual neighbors...\n")
 
-  samples <- sample(nrow(data), n, replace = F)
+  if (file.exists(samplepath)) {
+    load(samplepath)
+  } else {
+    samples <- sample(nrow(data), n, replace = F)
 
-  actualneighbors <- RANN::nn2(
-    data, data[samples, ], k = K, treetype='kd',
-  )$nn.idx - 1
+    actualneighbors <- RANN::nn2(
+      data, data[samples, ], k = K, treetype='kd',
+    )$nn.idx - 1
 
-  print(str(actualneighbors))
+    savedsamples <- list(samples = samples, neighbors = actualneighbors)
+    save(savedsamples, file = samplepath)
+    rm(samples)
+    rm(actualneighbors)
+  }
   data <- t(data)
 
   results <- data.frame(time = numeric(0),
@@ -33,9 +41,8 @@ benchmark <- function(path,
                                              K, n_trees, threshold, max_iters,
                                              verbose = TRUE)
         )
-        precision <- lapply(1:n, FUN = function(x)  sum(knns[, samples[x]] %in% actualneighbors[x, ]))
-        print(time)
-        print(sum(as.numeric(precision)))
+        precision <- lapply(1:n,
+                            FUN = function(x)  sum(knns[, savedsamples$samples[x]] %in% savedsamples$neighbors[x, ]))
 
         one_result <- data.frame(
                            time = time[1] + time[5],
@@ -43,8 +50,9 @@ benchmark <- function(path,
                            n_trees = n_trees,
                            max_iterations = max_iters,
                            tree_threshold = threshold)
-  print(one_result)
-  results <- rbind(results, one_result)
+        print(one_result)
+        results <- rbind(results, one_result)
+        save(results, "benchmark.Rda")
       })
     })
   })
@@ -53,7 +61,7 @@ benchmark <- function(path,
 
 require( largeVis )
 path <- "/mnt/hfsshare/DATASETS/sift/siftknns.txt"
+samplepath <- "./samples.Rda"
 
-results <- benchmark(path, n = 10000, K = 1000)
+results <- benchmark(path, samplepath, n = 10000, K = 100)
 print(results)
-save(results, "benchmark.Rda")

@@ -62,7 +62,7 @@ save(coords, file = "./mnistcoords.Rda")
 ```
 ```{r drawmnist,echo=F,warning=F,error=F,message=F}
 load("./mnist.Rda")
-load("./newmnistcoords.Rda")
+load("./mnistcoords.Rda")
 coords <- data.frame(t(coords$coords))
 coords <- cbind(coords, factor(mnist$labels))
 colnames(coords) <- c("x", "y", "label")
@@ -89,9 +89,9 @@ dim(mnistimages) <- c(42000, 28, 28)
 coords <- as.matrix(coords[,1:2])
 coords <- scale(coords)
 manifoldMap(coords,
-    n = 3000,
-    scale = 0.005,
-    transparency = F,
+    n = 5000,
+    scale = 0.003,
+    transparency = T,
     images = mnistimages,
     xlab="", ylab="",
     xlim = c(-2.5, 2.5), 

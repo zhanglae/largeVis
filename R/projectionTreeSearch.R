@@ -14,6 +14,7 @@
 #' using a value equivalent to the number of features in the input set.
 #' @param max_iter Number of iterations in the neighborhood exploration phase.
 #' @param max_depth The maximum level of recursion.
+#' @param distance_method One of "Euclidean" or "Cosine."
 #' @param verbose Whether to print verbose logging using the \code{progress} package.
 #'
 #' @return A [K, N] matrix of the approximate K nearest neighbors for each vertex.
@@ -27,6 +28,7 @@ randomProjectionTreeSearch <- function(x,
                                        tree_threshold =  max(10, nrow(x)),
                                        max_iter = 2,
                                        max_depth = 32,
+                                       distance_method = "Euclidean",
                                        verbose= TRUE) {
    if (verbose) cat("Searching for neighbors.\n")
 
@@ -35,6 +37,7 @@ randomProjectionTreeSearch <- function(x,
                       K = K, max_recursion_degree = max_depth,
                       maxIter = max_iter,
                       data = x,
+                      distance_method,
                       verbose = verbose)
 
   if (sum(colSums(knns != -1) == 0) + sum(is.na(knns)) + sum(is.nan(knns)) > 0)

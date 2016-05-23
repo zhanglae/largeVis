@@ -6,9 +6,9 @@
 \usage{
 vis(x, dim = 2, K = 40, check.assumptions = TRUE, n_trees = 50,
   tree_threshold = max(10, nrow(x)), max_iter = 3, max_depth = 32,
-  perplexity = 50, sgd_batches = ncol(x) * 20000, M = 5,
-  weight_pos_samples = TRUE, alpha = 2, gamma = 7, rho = 1,
-  min_rho = 0, coords = NULL, verbose = TRUE, ...)
+  distance_method = "Euclidean", perplexity = 50, sgd_batches = ncol(x) *
+  20000, M = 5, weight_pos_samples = TRUE, alpha = 2, gamma = 7,
+  rho = 1, min_rho = 0, coords = NULL, verbose = TRUE, ...)
 }
 \arguments{
 \item{x}{A matrix, where the features are rows and the examples are columns.}
@@ -29,6 +29,8 @@ the first pass through the neighborhood exploration phases will involve up to \e
 \item{max_iter}{See \code{\link{randomProjectionTreeSearch}}.}
 
 \item{max_depth}{See \code{\link{randomProjectionTreeSearch}}}
+
+\item{distance_method}{One of "Euclidean" or "Cosine."  See \code{\link{randomProjectionTreeSearch}}.}
 
 \item{perplexity}{See paper}
 

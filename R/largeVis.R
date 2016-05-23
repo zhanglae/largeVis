@@ -17,6 +17,7 @@
 #' the first pass through the neighborhood exploration phases will involve up to \eqn{N * nTrees * threshold} comparisons.
 #' @param max_depth See \code{\link{randomProjectionTreeSearch}}
 #' @param max_iter See \code{\link{randomProjectionTreeSearch}}.
+#' @param distance_method One of "Euclidean" or "Cosine."  See \code{\link{randomProjectionTreeSearch}}.
 #' @param perplexity See paper
 #' @param sgd_batches See \code{\link{projectKNNs}}.
 #' @param M See \code{\link{projectKNNs}}.
@@ -76,6 +77,7 @@ vis <- function(x,
                      tree_threshold = max(10, nrow(x)),
                      max_iter = 3,
                      max_depth = 32,
+                     distance_method = "Euclidean",
 
                      perplexity = 50,
 
@@ -109,6 +111,7 @@ vis <- function(x,
                                      K = K,
                                      max_iter = max_iter,
                                      max_depth = max_depth,
+                                     distance_method = distance_method,
                                      verbose = verbose)
 
   #############################################
@@ -141,7 +144,7 @@ vis <- function(x,
   #######################################################
   if (verbose) cat("Calculating neighbor distances.\n")
 
-  xs <- distance(is, js, x, verbose)[, 1]
+  xs <- distance(is, js, x, distance_method,verbose)[, 1]
 
   if (verbose) cat("\n")
 
