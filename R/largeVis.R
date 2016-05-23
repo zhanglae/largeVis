@@ -150,6 +150,9 @@ vis <- function(x,
 
   if ( (any(is.na(xs)) + any(is.infinite(xs)) + any(is.nan(xs)) + any(xs == 0)) > 0)
   stop("An error leaked into the distance calculation - check for duplicates")
+  if (any(xs > 27)) stop(paste(
+    "The Distances between some neighbors are large enough to cause the calculation of p_{j|i} to overflow.",
+    "Consider scaling the data matrix or using an alternative distance function."))
 
   ########################################################
   # Estimate sigmas
@@ -187,8 +190,6 @@ vis <- function(x,
   if (any(is.na(wij@x)) || any(is.infinite(wij@x)) || any(is.nan(wij@x)) || any( (wij@x == 0)) > 0)
     stop("An error has propogated into the w_{ij} vector.  This probably means the input data wasn't scaled.")
 
-  # Symmetricize
-  wij <- wij + Matrix::t(wij)
   rm(xs, js, is)
 
   #######################################################

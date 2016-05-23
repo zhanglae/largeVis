@@ -80,6 +80,7 @@ arma::sp_mat distMatrixTowij(
     values,
     N, N // n_col and n_row
     );
+  wij = wij + wij.t();
   return wij;
 };
 

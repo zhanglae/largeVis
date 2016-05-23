@@ -9,6 +9,7 @@ max_depth parameter.
 * The alternative (alpha == 0) probabilistic function now works. 
 * Benchmarks
 * Vignette
+* Improved multi-threading performance
 
 ### largeVis 0.1.3
 

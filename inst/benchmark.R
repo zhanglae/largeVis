@@ -1,9 +1,9 @@
 benchmark <- function(path,
                       samplepath,
                            K = 40,
-                           tree_range = c(10, 20, 50),
+                           tree_range = c(10, 20),
                            thresholds = c(10, 20, 50, 100),
-                           iters = c(1, 2, 3),
+                           iters = c(1,2),
                            n = 10) {
   data <- readr::read_delim(path, delim = " ", col_names = F)
   data <- as.matrix(data)
@@ -32,30 +32,30 @@ benchmark <- function(path,
                         max_iterations = numeric(0),
                         tree_threshold = numeric(0))
 
-  lapply(tree_range, FUN = function(n_trees) {
-    lapply(iters, FUN = function(max_iters) {
-      lapply(thresholds, FUN = function(threshold) {
-        print(paste(n_trees, max_iters, threshold))
-        time <- system.time(
-          knns <- randomProjectionTreeSearch(data,
-                                             K, n_trees, threshold, max_iters,
-                                             verbose = TRUE)
-        )
-        precision <- lapply(1:n,
-                            FUN = function(x)  sum(knns[, savedsamples$samples[x]] %in% savedsamples$neighbors[x, ]))
+  for (n_trees in tree_range) {
+	  for (max_iters in iters) {
+		  for (threshold in thresholds) {
+    		print(paste(n_trees, max_iters, threshold))
+    		time <- system.time(
+      		knns <- randomProjectionTreeSearch(data,
+                                         K, n_trees, threshold, max_iters,
+                                         verbose = TRUE)
+    		)
+    		precision <- lapply(1:n,
+                        FUN = function(x)  sum(knns[, savedsamples$samples[x]] %in% savedsamples$neighbors[x, ]))
 
-        one_result <- data.frame(
-                           time = time[1] + time[5],
-                           precision = sum(as.numeric(precision)) / n,
-                           n_trees = n_trees,
-                           max_iterations = max_iters,
-                           tree_threshold = threshold)
-        print(one_result)
-        results <- rbind(results, one_result)
-        save(results, "benchmark.Rda")
-      })
-    })
-  })
+   			one_result <- data.frame(
+                       time = time[1] + time[5],
+                       precision = sum(as.numeric(precision)) / n,
+                       n_trees = n_trees,
+                       max_iterations = max_iters,
+                       tree_threshold = threshold)
+    		print(one_result)
+    		results <<- rbind(results, one_result)
+    		save(results, file = "benchmark.Rda")
+  		}
+  	}
+  }
   return(results)
 }
 

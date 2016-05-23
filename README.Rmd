@@ -10,7 +10,7 @@ This is an implementation of the `largeVis` algorithm described in (https://arxi
 The inner loops for nearest-neighbor search and gradient descent are implemented in C++ using `Rcpp` and `RcppArmadillo`.
 
 #### Project Status & Caveats
-* It works!
+* It works!   I have now tested with datasets of up to 1 Million rows. 
 * The OpenMP issues in the original upload have been resolved, and OpenMP re-enabled.
 * Memory efficiency has been *vastly* improved in 0.1.3.  Peak memory consumption on MNIST is now closer to 2GB (down from 8GB). Several phases of the algorithm are also now much faster.
 * Not yet working:

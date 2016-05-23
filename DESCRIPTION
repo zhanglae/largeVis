@@ -15,7 +15,7 @@ Imports:
     parallel,
     Rcpp (>= 0.12.4),
     RcppProgress (>= 0.2.1),
-    RcppArmadillo,
+    RcppArmadillo (>= 0.6.700.6.0),
     abind
 LinkingTo: Rcpp,RcppProgress,RcppArmadillo
 Suggests: testthat,

@@ -4,7 +4,7 @@
 using namespace Rcpp;
 
 double dist(const arma::vec& i, const arma::vec& j) {
-  return sum(square(i - j));
+  return sqrt(sum(square(i - j)));
 }
 
 double cosDist(const arma::vec& i, const arma::vec& j) {
