@@ -6,7 +6,7 @@
 \usage{
 projectKNNs(wij, dim = 2, sgd_batches = (length(wij@p) - 1) * 20000,
   M = 5, weight_pos_samples = if (alpha == 0) {     FALSE } else {     TRUE
-  }, gamma = 7, alpha = 2, rho = 1, coords = NULL, min_rho = 0.1,
+  }, gamma = 7, alpha = 1, rho = 1, coords = NULL, min_rho = 0,
   verbose = TRUE)
 }
 \arguments{

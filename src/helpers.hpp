@@ -1,5 +1,5 @@
-#ifndef ADD_H
-#define ADD_H
+#ifndef LARGEVISHELPERS
+#define LARGEVISHELPERS
 using namespace Rcpp;
 
 double dist(const arma::vec& i, const arma::vec& j);

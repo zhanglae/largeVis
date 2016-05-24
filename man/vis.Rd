@@ -7,7 +7,7 @@
 vis(x, dim = 2, K = 40, check.assumptions = TRUE, n_trees = 50,
   tree_threshold = max(10, nrow(x)), max_iter = 3, max_depth = 32,
   distance_method = "Euclidean", perplexity = 50, sgd_batches = ncol(x) *
-  20000, M = 5, weight_pos_samples = TRUE, alpha = 2, gamma = 7,
+  20000, M = 5, weight_pos_samples = TRUE, alpha = 1, gamma = 7,
   rho = 1, min_rho = 0, coords = NULL, verbose = TRUE, ...)
 }
 \arguments{
@@ -56,7 +56,7 @@ the first pass through the neighborhood exploration phases will involve up to \e
 }
 \value{
 A `largeVis` object with the following slots:
- \itemize{
+ \describe{
    \item{'knns'} {An [N,K] integer matrix, which is an adjacency list of each vertex' identified nearest neighbors.
    If the algorithm failed to find \code{K} neighbors, the matrix is padded with \code{NA}'s.}
    \item{'wij'} {A sparse [N,N] matrix where each cell represents \eqn{w_{ij}}.}
