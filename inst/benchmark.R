@@ -1,7 +1,7 @@
 benchmark <- function(path,
                       samplepath,
                            K = 40,
-                           tree_range = c(10, 20),
+                           tree_range = c(10, 20, 30),
                            thresholds = c(10, 20, 50, 100),
                            iters = c(1,2),
                            n = 10) {
@@ -51,8 +51,7 @@ benchmark <- function(path,
                        max_iterations = max_iters,
                        tree_threshold = threshold)
     		print(one_result)
-    		results <<- rbind(results, one_result)
-    		save(results, file = "benchmark.Rda")
+    		readr::write_csv(one_result, path = "results.csv", appent = TRUE)
   		}
   	}
   }

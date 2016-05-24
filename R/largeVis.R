@@ -31,7 +31,7 @@
 #' @param ... See paper
 #'
 #' @return A `largeVis` object with the following slots:
-#'  \itemize{
+#'  \describe{
 #'    \item{'knns'} {An [N,K] integer matrix, which is an adjacency list of each vertex' identified nearest neighbors.
 #'    If the algorithm failed to find \code{K} neighbors, the matrix is padded with \code{NA}'s.}
 #'    \item{'wij'} {A sparse [N,N] matrix where each cell represents \eqn{w_{ij}}.}
@@ -131,13 +131,6 @@ vis <- function(x,
   ord <- order(is)
   is <- is[ord]
   js <- js[ord]
-  ps <- rep(NA, N + 1)
-  diffs <- diff(is)
-  ps[is[which(diffs > 0)] + 2] <- which(diffs > 0) + 1
-  good <- cumsum(!is.na(ps))
-  ps <- ps[good + 1]
-  ps[1] <- 1
-  ps[length(ps) + 1] <- length(is)
 
   #######################################################
   # Calculate edge weights for candidate neighbors
@@ -154,48 +147,23 @@ vis <- function(x,
     "The Distances between some neighbors are large enough to cause the calculation of p_{j|i} to overflow.",
     "Consider scaling the data matrix or using an alternative distance function."))
 
-  ########################################################
-  # Estimate sigmas
-  ########################################################
-  if (verbose) {
-    progress <- txtProgressBar(max = N, title = "sigmas")
-    cat("Estimating sigmas\n")
-  }
-
-  perplexity = log2(perplexity)
-  sigmas <- parallel::mclapply(1:N, FUN = function(idx) {
-    if (verbose) setTxtProgressBar(progress, idx)
-    x_i <- xs[ps[idx]:(ps[idx + 1] - 1)]
-    ret <- optimize(f = sigFunc,
-             x = x_i,
-             perplexity = perplexity,
-             interval = c(0, 10000))
-  })
-  sigmas <- sapply(sigmas, `[[`, 1)
-
-  if (verbose) close(progress)
-
-  if (any(is.na(sigmas)) + any(is.infinite(sigmas)) + any(is.nan(sigmas)) + any( (sigmas == 0)) > 0)
-    stop("An error has propogated into the sigma vector.")
-
   #######################################################
-  # Calculate w_{ij}
+  # Get w_{ij}
   #######################################################
 
-  if (! requireNamespace("Matrix", quietly = T)) stop("The Matrix package must be available.")
+  ps <- i2p(is)
+  sigwij <- buildEdgeMatrix(i = is,
+                         j = js,
+                         p = ps,
+                         d = xs,
+                         perplexity = perplexity,
+                         verbose = verbose)
 
-  if (verbose) cat("Calculating w_{ij}.\n")
-  wij <- distMatrixTowij(is, js, xs, sigmas, N, verbose)
-
-  if (any(is.na(wij@x)) || any(is.infinite(wij@x)) || any(is.nan(wij@x)) || any( (wij@x == 0)) > 0)
-    stop("An error has propogated into the w_{ij} vector.  This probably means the input data wasn't scaled.")
-
-  rm(xs, js, is)
 
   #######################################################
   # Estimate embeddings
   #######################################################
-  coords <- projectKNNs(wij = wij,
+  coords <- projectKNNs(wij = sigwij$wij,
                         dim = dim,
                         sgd_batches = sgd_batches,
                         M = M,
@@ -215,10 +183,10 @@ vis <- function(x,
 
   returnvalue <- list(
     knns = t(knns),
-    wij = wij,
+    wij = sigwij$wij,
     call = sys.call(),
     coords = coords,
-    sigmas = sqrt(sigmas / 2)
+    sigmas = sqrt(sigwij$sigmas / 2)
   )
 
   class(returnvalue) <- "largeVis"
