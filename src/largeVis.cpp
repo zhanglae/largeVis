@@ -11,6 +11,12 @@
 using namespace Rcpp;
 using namespace std;
 
+// The Euclidean distance between two vectors
+
+inline double dist(arma::vec i, arma::vec j) {
+  return sum(square(i - j));
+}
+
 /*
  * Some helper functions useful in debugging.
  */
@@ -19,10 +25,6 @@ void checkVector(const arma::vec& x,
   if (x.has_nan() || x.has_inf())
     Rcout << "\n Failure at " << label;
 };
-
-inline double dist(arma::vec i, arma::vec j) {
-  return sum(square(i - j));
-}
 
 double objective(const arma::mat& inputs, double gamma, double alpha) {
   double objective = log(1 / (1 + (alpha * dist(inputs.col(0), inputs.col(1)))));
@@ -48,22 +50,21 @@ void checkGrad(const arma::vec& x,
 
 // [[Rcpp::export]]
 arma::mat sgd(arma::mat coords,
-         const NumericVector is, // vary randomly
-         const NumericVector js, // ordered
-         const NumericVector ps, // N+1 length vector of indices to start of each row j in vector is
-         const NumericVector ws, // w{ij}
-         const double gamma,
-         const double rho,
-         const double minRho,
-         const bool useWeights,
-         const int nBatches,
-         const int M,
-         const double alpha,
-         bool verbose) {
+              const NumericVector is, // vary randomly
+              const NumericVector js, // ordered
+              const NumericVector ps, // N+1 length vector of indices to start of each row j in vector is
+              const NumericVector ws, // w{ij}
+              const double gamma,
+              const double rho,
+              const double minRho,
+              const bool useWeights,
+              const int nBatches,
+              const int M,
+              const double alpha,
+              bool verbose) {
 
   Progress progress(nBatches, verbose);
 
-  const int updateRate = 1e6;
   const int D = coords.n_rows;
   const int N = ps.size() - 1;
   const int E = ws.length();
@@ -90,7 +91,7 @@ arma::mat sgd(arma::mat coords,
   arma::vec positiveSamples = arma::randu<arma::vec>(posSampleLength);
 
   // Iterate through the edges in the positiveEdges vector
-  #pragma omp parallel for shared(coords, positiveSamples) schedule(static)
+#pragma omp parallel for shared(coords, positiveSamples) schedule(static)
   for (int eIdx=0; eIdx < nBatches; eIdx++) {
     if (progress.increment()) {
       const double posTarget = *(positiveSamples.begin() + (eIdx % posSampleLength));
@@ -104,41 +105,45 @@ arma::mat sgd(arma::mat coords,
                                               positiveEdgeWeights.end(),
                                               posTarget));
       }
-
       const int i = is[e_ij];
       const int j = js[e_ij];
 
-      arma::vec y_i = arma::vec(D);
-      arma::vec y_j = arma::vec(D);
-      for (int idx = 0; idx < D; idx++) {
-        y_i[idx] = coords(idx,i);
-        y_j[idx] = coords(idx,j);
-      }
-
       const double localRho = rho - ((rho - minRho) * eIdx / nBatches);
+
+      //if ((arma::randn<arma::vec>(1))[0] < 0) swap(i, j);
+
+      const arma::vec y_i = coords.col(i);
+      const arma::vec y_j = coords.col(j);
+      // arma::vec y_i = arma::vec(D);
+      // arma::vec y_j = arma::vec(D);
+      // for (int idx = 0; idx < D; idx++) {
+      //   y_i[idx] = coords(idx,i);
+      //   y_j[idx] = coords(idx,j);
+      // }
 
       // wij
       const double w = (useWeights) ? ws[e_ij] : 1;
 
-      const double      dist_ij   =   sqrt(dist(y_i, y_j));
-      const arma::vec   d_dist_ij =   (y_i - y_j) / dist_ij;
+      const double dist_ij = dist(y_i, y_j);
 
-      const double      p_ij      =   (alpha == 0) ?
-                                        1 / (1 +     exp( pow(dist_ij,2))):
-                                        1 / (1 + (alpha * pow(dist_ij,2)));
-      const arma::vec   d_p_ij    =   (alpha == 0) ?
-                                d_dist_ij * -2 * dist_ij * exp(pow(dist_ij,2)) / pow(1 +      exp(pow(dist_ij,2)), 2):
-                                d_dist_ij * -2 * dist_ij * alpha               / pow(1 + (alpha * pow(dist_ij,2)), 2);
+      const arma::vec d_dist_ij = (y_i - y_j) / sqrt(dist_ij);
+      double p_ij;
+      if (alpha == 0)   p_ij =   1 / (1 +      exp(dist_ij));
+      else              p_ij =   1 / (1 + (alpha * dist_ij));
+
+      arma::vec d_p_ij;
+      if (alpha == 0) d_p_ij =  d_dist_ij * -2 * dist_ij * exp(dist_ij) / pow(1 + exp(dist_ij), 2);
+      else            d_p_ij =  d_dist_ij * -2 * dist_ij * alpha        / pow(1 +    (dist_ij * alpha),2);
 
       //double o = log(p_ij);
-      const arma::vec   d_j       =   (1 / p_ij) * d_p_ij;
-      arma::vec         d_i       =   d_j;
+      const arma::vec d_j = (1 / p_ij) * d_p_ij;
 
       arma::vec samples = arma::randu<arma::vec>(M * 2);
       arma::vec::iterator targetIt = samples.begin();
       int sampleIdx = 1;
       // The indices of the nodes with edges to i
       arma::vec searchVector = i_idx.subvec(ps[i], ps[i + 1] - 1);
+      arma::vec d_i = d_j;
       int m = 0;
       while (m < M) {
         if (sampleIdx % (M * 2) == 0) samples.randu();
@@ -146,35 +151,36 @@ arma::mat sgd(arma::mat coords,
         const double target = targetIt[sampleIdx++ % (M * 2)];
         int k;
         if (useWeights) k = target * (N - 1);
-        else            k = std::distance(
-                                          negativeSampleWeights.begin(),
-                                          std::upper_bound( negativeSampleWeights.begin(),
-                                                            negativeSampleWeights.end(),
-                                                            target
-                                                          )
-                                        );
+        else k = std::distance(negativeSampleWeights.begin(),
+                               std::upper_bound(negativeSampleWeights.begin(),
+                                                negativeSampleWeights.end(),
+                                                target)
+        );
+
         if (k == i ||
             k == j ||
             sum(searchVector == k) > 0) continue;
+        const arma::vec y_k = coords.col(k);
+        // arma::vec y_k = arma::vec(D);
+        // for (int idx = 0; idx < D; idx++) y_k[idx] = coords(idx,k);
 
-        arma::vec y_k = arma::vec(D);
-        for (int idx = 0; idx < D; idx++) y_k[idx] = coords(idx,k);
+        const double dist_ik = dist(y_i, y_k);
+        if (dist_ik == 0) continue; // Duplicates
 
-        const double dist_ik =  sqrt(dist(y_i, y_k));
-        if (dist_ik == 0) continue; // check for duplicates
-        const arma::vec d_dist_ik = (y_i - y_k) / dist_ik;
+        const arma::vec d_dist_ik = (y_i - y_k) / sqrt(dist_ik);
 
-        const double p_ik = (alpha == 0) ?
-                                1 - (1 / (1 +     exp( pow(dist_ik,2)))):
-                                1 - (1 / (1 + (alpha * pow(dist_ik,2))));
-        const arma::vec d_p_ik = (alpha == 0) ?
-                                  d_dist_ik * 2 * dist_ik * exp(pow(dist_ik,2)) / pow(1 +      exp(pow(dist_ik,2)),2):
-                                  d_dist_ik * 2 * dist_ik * alpha               / pow(1 + (alpha * pow(dist_ik,2)),2);
+        double p_ik;
+        if (alpha == 0) p_ik  =  1 - (1 / (1 +      exp(dist_ik)));
+        else            p_ik  =  1 - (1 / (1 + (alpha * dist_ik)));
 
+        arma::vec d_p_ik;
+        if (alpha == 0) d_p_ik =  d_dist_ik * 2 * dist_ik * exp(dist_ik) / pow(1 +      exp(dist_ik),2);
+        else            d_p_ik =  d_dist_ik * 2 * dist_ik * alpha        / pow(1 + (alpha * dist_ik),2);
         //o += (gamma * log(p_ik));
-        const arma::vec d_k = (gamma / p_ik) * d_p_ik;
-        d_i += d_k;
 
+        const arma::vec d_k = (gamma / p_ik) * d_p_ik;
+
+        d_i += d_k;
         for (int idx = 0; idx < D; idx++) coords(idx,k) -= d_k[idx] * localRho * w;
 
         m++;
@@ -185,7 +191,7 @@ arma::mat sgd(arma::mat coords,
         coords(idx,i) +=  d_i[idx] * w * localRho;
       }
 
-      if (eIdx > 0 && eIdx % posSampleLength == 0) positiveSamples.randu();
+      if (eIdx >0 && eIdx % posSampleLength == 0) positiveSamples.randu();
     }
   }
   return coords;

@@ -31,7 +31,7 @@ dat <- (dat / 255) - 0.5
 dat <- t(dat)
 coords <- vis(dat, check=FALSE,
                    n_tree = 50, tree_th = 700,
-                   K = 100,  max.iter = 1, gamma = 3.5, alpha = 2)
+                   K = 100,  max.iter = 1)
 ```
 
 ![](README_files/figure-markdown_github/drawmnist-1.png)
@@ -49,8 +49,8 @@ coords <- as.matrix(coords[,1:2])
 coords <- scale(coords)
 manifoldMap(coords,
     n = 5000,
-    scale = 0.007,
-    transparency = TRUE,
+    scale = 0.005,
+    transparency = FALSE,
     images = mnistimages,
     xlab="", ylab="",
     xlim = c(-2.5, 2.5), 

@@ -107,6 +107,7 @@ arma::mat searchTrees(const int& threshold,
   double (*distanceFunction)(const arma::vec& x_i, const arma::vec& x_j);
   if (distMethod.compare(std::string("Euclidean")) == 0) distanceFunction = relDist;
   else if (distMethod.compare(std::string("Cosine")) == 0) distanceFunction = cosDist;
+  else distanceFunction = relDist;
 
   Progress p((N * n_trees) + (N) + (N * maxIter), verbose);
 
