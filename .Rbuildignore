@@ -14,6 +14,7 @@
 ^vignettes/largeVis_files$
 ^vignettes/largeVis_cache$
 ^vignettes/largeVis_cache/.$
+^vignetttes/faceshighres.png$
 ^vignettes/cache$
 ^vignettes/cache/.$
 ^vignettes/data$
@@ -31,4 +32,11 @@
 ^m.*\.Rda$
 ^f.*\.Rda$
 ^vignettes/.*\.Rda$
-^vignettes/.*\.Rda$
+^faces\.png$
+^ljc\.Rda^$
+^min\.R$
+^stm\.R$
+^stmmodel\.Rda$
+^stmwij\.Rda$
+^wiki_word_vec_100d\.txt$
+^youtubecoords\.Rda$

@@ -23,14 +23,14 @@ This is an implementation of the `largeVis` algorithm described in (<https://arx
 -   Give Erik and Dirk a few days to comment on the performance.
 
 Vignette
---------
+========
 
-This Vingette provides an overview of the largeVis package.
+This Vignette provides an overview of the largeVis package.
 
 Introduction
 ------------
 
-This package provides `LargeVis` visualizations and fast nearest-neighbor search. The `LargeVis` algorithm, presented in Tang et al. (2016), creates high-quality low-dimensional representaitons of large, high-dimensional datasets, similar to [t-SNE](https://lvdmaaten.github.io/tsne/).
+This package provides `LargeVis` visualizations and fast nearest-neighbor search. The `LargeVis` algorithm, presented in Tang et al. (2016), creates high-quality low-dimensional representations of large, high-dimensional datasets, similar to [t-SNE](https://lvdmaaten.github.io/tsne/).
 
 These visualizations are useful for data exploration, for visualizing complex non-linear functions, and especially for visualizing embeddings such as learned vectors for images.
 
@@ -89,7 +89,7 @@ See the vignette "ANN Benchmarks" for additional information.
 
 This function takes as its input a `Matrix::sparseMatrix`, of connections between nodes. The matrix must be symmetric. A non-zero cell implies that node `i` is a nearest neighbor of node `j`, vice-versa, or both. Non-zero values represent the strength of the connection relative to other nearest neighbors of the two nodes.
 
-The `LargeVis` algorithm, explained in detail in Tang et al. (2016), estimates the embedding by sampling from the identitied nearest-neighbor connections. For each edge, the algorithm also samples `M` non-nearest neighbor negative samples. `M`, along with *γ* and *α*, control the visualization. *α* controls the desired distance between nearest neighbors. *γ* controls the relative strength of the attractive force between nearest neighbors and repulsive force between non-neighbors.
+The `LargeVis` algorithm, explained in detail in Tang et al. (2016), estimates the embedding by sampling from the identified nearest-neighbor connections. For each edge, the algorithm also samples `M` non-nearest neighbor negative samples. `M`, along with *γ* and *α*, control the visualization. *α* controls the desired distance between nearest neighbors. *γ* controls the relative strength of the attractive force between nearest neighbors and repulsive force between non-neighbors.
 
 The following grid illustrates the effect of the *α* and *γ* hyperparameters, using the `wiki` dataset which is included with the package:
 
@@ -140,19 +140,21 @@ The code is disabled by default in this vignette for data size reasons.
 
 #### Example with Faces
 
-The following examples visualize facial-recognition embedding vectors from the [Labelled Faces in the Wild](http://vis-www.cs.umass.edu/lfw/) dataset. The embedding vectors were graciously provided by [Brandon Amos](https://bamos.github.io/) of the [OpenFace](https://cmusatyalab.github.io/openface/) project. Similar vectors may be generated for images using the OpenFace `batch-represent` command.
+The following examples visualize facial-recognition embedding vectors from the [Labeled Faces in the Wild](http://vis-www.cs.umass.edu/lfw/) dataset. The embedding vectors were graciously provided by [Brandon Amos](https://bamos.github.io/) of the [OpenFace](https://cmusatyalab.github.io/openface/) project. Similar vectors may be generated for images using the OpenFace `batch-represent` command.
 
-OpenFace embedding vectors encode an image in such a way that the embeddings for multiple images of the same person should be similar. This is illustrated on the first plot below, which highlights the locations of the embedding vectors for images of 10 selected individuals. (The 10 were selected on the basis that there are a large number of images of each in the dataset, and the author would reognize them.)
+OpenFace embedding vectors encode an image in such a way that the embeddings for multiple images of the same person should be similar. This is illustrated on the first plot below, which highlights the locations of the embedding vectors for images of 10 selected individuals. (The 10 were selected on the basis that there are a large number of images of each in the dataset, and the author would recognize them.)
 
 ![](README_files/figure-markdown_github/plotFaceVectors-1.png)
 
-The function of `manifoldMap` is illustrated in the following plot, which places 300 images from the dataset at the locations given by the `largeVis` map.
+The function of `manifoldMap` is illustrated in the following plot, which places 500 images from the dataset at the locations given by the `largeVis` map.
 
-The plot is disabled by default because it requires obtaining the face images directly from [Labelled Faces in the Wild](http://vis-www.cs.umass.edu/lfw/).
+The plot is disabled by default because it requires obtaining the face images directly from [Labeled Faces in the Wild](http://vis-www.cs.umass.edu/lfw/).
 
 ![](README_files/figure-markdown_github/faceImages-1.png)
 
 A high resolution version is available [here](vignettes/faceshighres.png)
+
+Note what the plot is showing. The positions of the faces in [Karpathy's embedding plots](http://cs.stanford.edu/people/karpathy/cnnembed/) are highly sensitive to the background and overall sense of each image, because Karpathy used embedding vectors produced by a general-purpose model. In the plot of the OpenFace vectors above, the positions are insensitive to the image backgrounds -- but pictures of the same individual are plotted close to each other, and close to similar-looking persons.
 
 Support for Sparse Matrices
 ---------------------------
@@ -248,7 +250,7 @@ Bibliography
 ------------
 
 Benchmarks
-----------
+==========
 
 Overview
 --------
@@ -288,7 +290,7 @@ The following chart illustrates performance versus the `Annoy` library, as imple
 
 <img src="README_files/figure-markdown_github/plotpeformance-1.png" style="display: block; margin: auto;" />
 
-The `largeVis` series are labelled by the number of neighbor-exploration iterations.
+The `largeVis` series are labeled by the number of neighbor-exploration iterations.
 
 The difference between `RcppAnnoy` and `RcppAnnoy-Full` is that `Annoy` is designed for the construction of a static tree that can then be queried, while `largeVis` finds nearest neighbors for all nodes at the same time. The times shown for `RcppAnnoy` are the times to fetch neighbors only for the 10000 rows that were used to test. `RcppAnnoy-full`, like `largeVis`, shows the time to fetch neighbors for the entire dataset.
 

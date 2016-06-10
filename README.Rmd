@@ -32,7 +32,7 @@ This is an implementation of the `largeVis` algorithm described in (https://arxi
 * Confirm that the map visualization function works with color images. **DONE**
 * Give Erik and Dirk a few days to comment on the performance. 
 
-## Vignette
+# Vignette
 
 ```{r param,echo=FALSE}
 buildManifolds=TRUE
@@ -40,7 +40,7 @@ buildManifolds=TRUE
 ```{r child='vignettes/largeVis.Rmd',}
 ```
 
-## Benchmarks
+# Benchmarks
 
 ```{r child='vignettes/benchmarks.Rmd',}
 ```

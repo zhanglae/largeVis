@@ -34,4 +34,4 @@ before_install: |
   CXX1XSTD=-std=c++11
 
 after_success:
-  - Rscript -e 'covr::codecov(branch="0.1.6")'
+  - Rscript -e 'covr::codecov()'
