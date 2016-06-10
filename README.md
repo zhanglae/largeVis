@@ -1,7 +1,7 @@
 largeVis
 ================
 
-[![Travis-CI Build Status](https://travis-ci.org/elbamos/largeVis.svg?branch=0.1.6)](https://travis-ci.org/elbamos/largeVis)[![Coverage Status](https://img.shields.io/codecov/c/github/elbamos/largeVis/0.1.6%20.svg)](https://codecov.io/github/elbamos/largeVis?branch=0.1.6) [![https://gitter.im/elbamos/largeVis](https://badges.gitter.im/elbamos/largeVis.svg)](https://gitter.im/elbamos/largeVis?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)[![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/elbamos/largeVis?branch=0.1.6%20&svg=true)](https://ci.appveyor.com/project/elbamos/largeVis)
+[![Travis-CI Build Status](https://travis-ci.org/elbamos/largeVis.svg?branch=0.1.6)](https://travis-ci.org/elbamos/largeVis) [![Coverage Status](https://img.shields.io/codecov/c/github/elbamos/largeVis/0.1.6.svg))](https://codecov.io/github/elbamos/largeVis?branch=%22) [![https://gitter.im/elbamos/largeVis](https://badges.gitter.im/elbamos/largeVis.svg)](https://gitter.im/elbamos/largeVis?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/elbamos/largeVis?branch=0.1.6&svg=true)](https://ci.appveyor.com/project/elbamos/largeVis)
 
 This is an implementation of the `largeVis` algorithm described in (<https://arxiv.org/abs/1602.00370>). It also incorporates a very fast algorithm for estimating k-nearest neighbors, implemented in C++ with `Rcpp` and `OpenMP`, and for visualizing a map of the manifold in the manner demonstrated by [Andrej Karpathy](http://cs.stanford.edu/people/karpathy/cnnembed/).
 
@@ -13,8 +13,7 @@ This is an implementation of the `largeVis` algorithm described in (<https://arx
 -   Not yet fully tested:
     -   The alternative distance function (*α* = 0).
     -   Transparency in the visualization function.
-    -   Multi-color images in the visualization function.
--   I am attempting to replicate the paper's results with larger and larger datasets. This takes time because my hardware is not as powerful as the authors'. If you have any to volunteer, please contact me!
+-   I am attempting to replicate the paper's results with larger datasets. This takes time because my hardware is not as powerful as the authors'. If you have any to volunteer, please contact me!
 
 #### To-do's Before Submission to CRAN
 
@@ -84,17 +83,7 @@ This function uses a two-phase algorithm to find approximate nearest neighbors. 
 
 The authors of Tang et al. (2016) suggest that a single iteration of the second phase is generally sufficient to obtain satisfactory performance.
 
-The chart below illlustrates the trade-off between performance and accuracy for the nearest-neighbor search, using various hyperparameters. The data was produced using the `benchmark.R` script in the `inst/` directory. The test data is the 1-million vector, 128-feature [SIFT Dataset](http://corpus-texmex.irisa.fr/), as per Erik Bernhardsson's [ANN Benchmark](https://github.com/erikbern/ann-benchmarks) github.
-
-<img src="README_files/figure-markdown_github/plotpeformance-1.png" style="display: block; margin: auto;" />
-
-The `largeVis` series are labelled by the number of neighbor-exploration iterations.
-
-The difference between `RcppAnnoy` and `RcppAnnoy-Full` is that `Annoy` is designed for the construction of a static tree that can then be queried, while `largeVis` finds nearest neighbors for all nodes at the same time. The times shown for `RcppAnnoy` are the times to fetch neighbors only for the 10000 rows that were used to test. `RcppAnnoy-full`, like `largeVis`, shows the time to fetch neighbors for the entire dataset.
-
-The data confirms the recommendation of the paper authors' concerning the number of iterations of neighborhood exploration: While the first iteration offers a substantial benefit, however it is more efficient to improve accuracy by increase the number of trees or size of the tree threshold than by adding iterations.
-
-If `randomProjectionTreeSearch` fails to find the desired number of neighbors, usually the best result is obtained by increasing the tree threshold. If `randomProjectionTreeSearch` fails with an error that no neighbors were found for some nodes, and the tree threshold is already reasonable, this may be an indication that duplicates remain in the input data.
+See the vignette "ANN Benchmarks" for additional information.
 
 ### `projectKNNs`
 
@@ -163,6 +152,8 @@ The plot is disabled by default because it requires obtaining the face images di
 
 ![](README_files/figure-markdown_github/faceImages-1.png)
 
+A high resolution version is available [here](vignettes/faceshighres.png)
+
 Support for Sparse Matrices
 ---------------------------
 
@@ -172,7 +163,7 @@ For example, the following plot visualizes a corpus of 5000 political blog entri
 
 ![](README_files/figure-markdown_github/drawtdm-1.png)
 
-This facilitates evaluation of the effectiveness of a topic model.
+This facilitates evaluation of the effectiveness of a topic model. In the example above, `stm` is asked to create a 20-topic model that is aware that blogs marked "liberal" and blogs marked "conservative" may talk about the same topics in different ways. As expected, the `largeVis` visualization of this model shows blog entries that group into 20 clusters, with "liberal" and "conservative" blogs each addressing, but placing different weights on, each of the 20 topics.
 
 Visualizing Graphs
 ------------------
@@ -224,41 +215,12 @@ ggplot(youTube_coordinates, aes( x = x,
   ggtitle("YouTube Communities")
 ```
 
-``` r
-pathToGraphFile <- 
-  "/mnt/hfsshare/DATASETS/livejournal/com-lj.ungraph.txt"
-pathToCommunities <- 
-  "/mnt/hfsshare/DATASETS/livejournal/com-lj.top5000.cmty.txt"
-
-livejournal <- readr::read_tsv(pathToGraphFile, skip=4, col_names=FALSE)
-livejournal <- as.matrix(livejournal) + 1
-livejournal <- Matrix::sparseMatrix(i = livejournal[, 1],
-                                j = livejournal[, 2],
-                                x = rep(1, nrow(livejournal)), 
-                                dims = c(max(livejournal), max(livejournal)))
-livejournal <- livejournal + t(livejournal)
-communities <- readr::read_lines(pathToCommunities)
-communities <- lapply(communities, 
-                      FUN = function(x) as.numeric(unlist(strsplit(x, "\t"))) + 1)
-community_assignments <- rep(0, 
-                             nrow(livejournal))
-for (i in 1:length(communities)) community_assignments[communities[[i]]] <- i
-
-todelete <- which(rowSums(livejournal) == 0)
-livejournal <- livejournal[- todelete, - todelete]
-community_assignments <- community_assignments[- todelete]
-
-livejournal_coordinates <- projectKNNs(livejournal)
-livejournalyouTube_coordinates <- data.frame(scale(t(youTube_coordinates)))
-colnames(livejournal_coordinates) <- c("x", "y")
-livejournal_coordinates$community <- factor(community_assignments)
-livejournal_coordinates$alpha <- factor(ifelse(livejournal_coordinates$community == 0, 0.05, 0.2))
-```
-
 Distance Methods
 ----------------
 
 The original `LargeVis` paper used Euclidean distances exclusively. The `largeVis` package offers a choice among Euclidean and Cosine distance measures.
+
+The implementation is not optimized for cosine distances. Using cosine distances will definitely be slower than using Euclidean distances. This is because the random projection tree algorithm for cosine distances requires that the input vectors in the data matrix be normalised.
 
 Memory Consumption
 ------------------
@@ -269,9 +231,9 @@ The algorithm is necessarily memory-intensive for large datasets. `neighborsToVe
 neighbors <- randomProjectionTreeSearch(largeDataset)
 neighborIndices <- neighborsToVectors(neighbors)
 rm(neighbors)
-distances <- distance(neighborIndices$i, 
-                      neighborIndices$j,
-                      largeDataset)
+distances <- distance(x = largeDataset, 
+                      i = neighborIndices$i, 
+                      j =neighborIndices$j)
 rm(largeDataset)
 wij <- buildEdgeMatrix(i = neighborIndices$i, 
                        j = neighborIndices$j, 
@@ -284,5 +246,54 @@ In testing, this method reduced peak RAM requirements by more than 70%.
 
 Bibliography
 ------------
+
+Benchmarks
+----------
+
+Overview
+--------
+
+Besides manifold visualization, `largeVis` also includes an extremely efficient approximate nearest-neighbor search that runs in *O*(*n*) time.
+
+This vignette includes benchmarks and recommendations for adjusting hyperparameters in the neighbor search for best results.
+
+Hyperparameters
+---------------
+
+The `randomProjectionTreeSearch` function has three hyperparameters that trade-off accuracy and efficiency in the neighbor search:
+
+1.  `n_trees` - In the first phase of the function, the number of random projection trees to create.
+2.  `tree_threshold` - The maximum number of any nodes on a random projection tree leaf. If, after branching, the number of nodes in a branch exceeds this threshold, the branch will be divided again.
+3.  `max_iters` - The number of iterations for the neighborhood-exploration phase of the algorithm.
+
+Data Collection & Methodology
+-----------------------------
+
+The data in the benchmarks below was obtained by running the `benchmark.R` script, which is installed along with the package, on two machines.
+
+The aim was to replicate as much as possible the methodology used by Erik Bernhardsson's [ANN Benchmark](https://github.com/erikbern/ann-benchmarks) github. It is not possible to use the same methods exactly. This is because `ANN Benchmark` is designed for libraries that are designed to build a neighbor index and then rapidly process queries against the index. The measure used by `ANN Benchmark` is therefore queries-per-second. By contract, `largeVis` is concerned with getting neighbors for all of the nodes in a finite dataset as quickly as possible.
+
+The data used is the 1-million vector, 128-feature [SIFT Dataset](http://corpus-texmex.irisa.fr/), which is the test data used by `ANN Benchmark`.
+
+Resulting times were normalized for each machine against the time for `RcppAnnoy` to identify neighbors for 10,000 vectors using 10 trees.
+
+Results that appear to have used virtual memory, in that the completion time was radically discontinuous with other results from the same machine, were discarded.
+
+I welcome submissions of output from the script from other hardware.
+
+Comparison With Annoy
+---------------------
+
+The following chart illustrates performance versus the `Annoy` library, as implemented through the `RcppAnnoy` R package.
+
+<img src="README_files/figure-markdown_github/plotpeformance-1.png" style="display: block; margin: auto;" />
+
+The `largeVis` series are labelled by the number of neighbor-exploration iterations.
+
+The difference between `RcppAnnoy` and `RcppAnnoy-Full` is that `Annoy` is designed for the construction of a static tree that can then be queried, while `largeVis` finds nearest neighbors for all nodes at the same time. The times shown for `RcppAnnoy` are the times to fetch neighbors only for the 10000 rows that were used to test. `RcppAnnoy-full`, like `largeVis`, shows the time to fetch neighbors for the entire dataset.
+
+The data confirms the recommendation of the paper authors' concerning the number of iterations of neighborhood exploration: While the first iteration offers a substantial benefit, however it is more efficient to improve accuracy by increase the number of trees or size of the tree threshold than by adding iterations.
+
+If `randomProjectionTreeSearch` fails to find the desired number of neighbors, usually the best result is obtained by increasing the tree threshold. If `randomProjectionTreeSearch` fails with an error that no neighbors were found for some nodes, and the tree threshold is already reasonable, this may be an indication that duplicates remain in the input data.
 
 Tang, Jian, Jingzhou Liu, Ming Zhang, and Qiaozhu Mei. 2016. “Visualizing Large-Scale and High-Dimensional Data.” In *Proceedings of the 25th International Conference on World Wide Web*, 287–97. International World Wide Web Conferences Steering Committee.
