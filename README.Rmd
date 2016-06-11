@@ -23,7 +23,6 @@ This is an implementation of the `largeVis` algorithm described in (https://arxi
 * Memory efficiency and performance are excellent. Memory efficiency can be improved further by using utility functions to perform the algorithm in stages. (Explained in the vignette.)
 * Not yet fully tested:
      + The alternative distance function ($\alpha = 0$).
-     + Transparency in the visualization function.
 * I am attempting to replicate the paper's results with larger datasets.  This takes time because my hardware is not as powerful as the authors'.  If you have any to volunteer, please contact me!
 
 #### To-do's Before Submission to CRAN

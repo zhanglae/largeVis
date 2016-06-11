@@ -6,17 +6,6 @@
 
 using namespace Rcpp;
 
-// readLINE
-NumericMatrix readLINE(std::string path);
-RcppExport SEXP largeVis_readLINE(SEXP pathSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< std::string >::type path(pathSEXP);
-    __result = Rcpp::wrap(readLINE(path));
-    return __result;
-END_RCPP
-}
 // sgd
 arma::mat sgd(arma::mat coords, arma::ivec& is, const IntegerVector js, const IntegerVector ps, const NumericVector ws, const double gamma, const double rho, const double minRho, const bool useWeights, const long nBatches, const int M, const double alpha, bool verbose);
 RcppExport SEXP largeVis_sgd(SEXP coordsSEXP, SEXP isSEXP, SEXP jsSEXP, SEXP psSEXP, SEXP wsSEXP, SEXP gammaSEXP, SEXP rhoSEXP, SEXP minRhoSEXP, SEXP useWeightsSEXP, SEXP nBatchesSEXP, SEXP MSEXP, SEXP alphaSEXP, SEXP verboseSEXP) {
@@ -55,23 +44,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const std::string& >::type distMethod(distMethodSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
     __result = Rcpp::wrap(searchTrees(threshold, n_trees, K, max_recursion_degree, maxIter, data, distMethod, verbose));
-    return __result;
-END_RCPP
-}
-// searchTreesOne
-arma::imat searchTreesOne(const int& threshold, const int& n_trees, const int& K, const int& max_recursion_degree, const arma::mat& data, const std::string& distMethod, bool verbose);
-RcppExport SEXP largeVis_searchTreesOne(SEXP thresholdSEXP, SEXP n_treesSEXP, SEXP KSEXP, SEXP max_recursion_degreeSEXP, SEXP dataSEXP, SEXP distMethodSEXP, SEXP verboseSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< const int& >::type threshold(thresholdSEXP);
-    Rcpp::traits::input_parameter< const int& >::type n_trees(n_treesSEXP);
-    Rcpp::traits::input_parameter< const int& >::type K(KSEXP);
-    Rcpp::traits::input_parameter< const int& >::type max_recursion_degree(max_recursion_degreeSEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type data(dataSEXP);
-    Rcpp::traits::input_parameter< const std::string& >::type distMethod(distMethodSEXP);
-    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
-    __result = Rcpp::wrap(searchTreesOne(threshold, n_trees, K, max_recursion_degree, data, distMethod, verbose));
     return __result;
 END_RCPP
 }

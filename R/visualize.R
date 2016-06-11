@@ -42,7 +42,6 @@ manifoldMap <- function(x,
                         n = nrow(x),
                         images,
                         scale = 1,
-                        transparency = FALSE,
                         ...) { #nocov start
   if (class(x) == "largeVis") x <- t(x$coords)
   if (ncol(x) != 2) stop("Can only visualize in 2-D.")
@@ -72,19 +71,6 @@ manifoldMap <- function(x,
       image_data <- images[i, , , ]
     }
     image_data <- 1 - ( (image_data - lowerscale) / upperscale)
-    if (transparency) {
-      if (length(dim(image_data)) == 2)
-        image_data <- abind::abind(image_data,
-                                  image_data,
-                                  image_data,
-                                  image_data,
-                                  along = 3)
-      else if (length(dim(image_data)) == 3) {
-        alpha <- apply(image_data, MARGIN = 3, FUN = sum)
-        alpha <- alpha / max(alpha)
-        image_data <- abind::abind(image_data, alpha, along = 3)
-      }
-    }
     image <- grDevices::as.raster(image_data)
     offsetx <- (nrow(image) * scale) / 2
     offsety <- (ncol(image) * scale) / 2

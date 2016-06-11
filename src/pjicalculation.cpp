@@ -1,5 +1,6 @@
-#include <RcppArmadillo.h>
 // [[Rcpp::plugins(openmp)]]
+// [[Rcpp::plugins(cpp11)]]
+#include <RcppArmadillo.h>
 #include "progress.hpp"
 #include <omp.h>
 #include <math.h>

@@ -17,6 +17,7 @@ require(RColorBrewer,
         quietly = TRUE)
 require(wesanderson, 
         quietly = TRUE)
+require(dplyr, quietly = TRUE)
 knitr::opts_chunk$set(collapse = TRUE, 
                       comment = "#>")
 colors_discrete <- function(x) rep(wes_palette("Darjeeling", 
@@ -91,75 +92,149 @@ benchmark$machine <- 1
 benchmark2 <- readr::read_csv("../inst/nelsonresults.csv", col_names = FALSE)
 benchmark2$machine <- 2
 
-benchmark <- rbind(benchmark, benchmark2)
-
-colnames(benchmark) <- c("time",
-"precision",
-"n_trees",
-"max_iters",
-"threshold",
-"method",
-"tree_type",
-"search_type",
-"eps", 
-"machine")
-
-benchmark$tree_type <- NULL
-benchmark$search_type <- NULL
-benchmark$eps <- NULL
-colnames(benchmark) <- c(colnames(benchmark)[1:6], 
-                         "machine")
-
-benchmark$method[grep("largeVis", benchmark$method)] <- 'largeVis'
-
-benchmark$series <- factor(paste(benchmark$method, benchmark$max_iters))
-benchmark$labels <- paste(benchmark$n_trees, ", ",
-benchmark$threshold, sep = "")
-benchmark$labels[grepl("Annoy",
-        benchmark$series)] <-benchmark$n_trees[grepl("Annoy", benchmark$series)]
-benchmark$labels[benchmark$max_iters > 1] <- ""
+benchmark <- rbind(benchmark, benchmark2) %>% 
+  colnames(c("time",
+    "precision",
+    "n_trees",
+    "max_iters",
+    "threshold",
+    "method",
+    "tree_type",
+    "search_type",
+    "eps", 
+    "machine")
+    ) %>%
+  select(-tree_type, -search_type, - eps) %>% 
+  mutate(method <- ifelse(grep("largeVis", method), "largeVis", method), 
+         series = ifelse(grep("largeVis", method), 
+                         paste(method, n_trees), 
+                         method), 
+         series = factor(series), 
+         method = factor(method)) %>%
+  group_by(machine) %>%
+  mutate(time = time / min(time))
 
 #benchmark[(benchmark$n_trees == 10 & benchmark$method == 'RcppAnnoy'),]
 
-benchmark$time <- benchmark$time / ifelse(benchmark$machine == 1, 1.444920, 1.535254)
+# benchmark$time <- benchmark$time / ifelse(benchmark$machine == 1, 1.444920, 1.535254)
 
 ```
 
 
 ```{r plotpeformance,echo=F,fig.width=5,fig.height=6,fig.align='center',warning=FALSE,message=FALSE}
 load(system.file("extdata", "benchmark.Rda", package = "largeVis"))
-ggplot(benchmark, aes(x = time, 
+ggplot(benchmark[benchmark$series != 'RcppAnnoy',], aes(x = time, 
                       y = 1 - (precision / 100), 
                       group = series, 
                       color = series, 
                       shape = series,
                       label = labels)) +
-  geom_point(size = 1) + 
+  geom_point(size = 2) + 
  # geom_line(size = 0.5) + 
   # geom_text(size = 3, 
   #           nudge_x = 10) +
-  scale_x_log10(name = expression(
-    atop("Relative log(Time), 1 = RcppAnnoy with 10 trees",
-         atop(italic("Annoy labels show n_trees, largeVis labels show n_trees,threshold"))
-         )
-    )) + 
-  scale_y_log10("Error", 
-                limits = c(0.1,1), 
-                breaks = c(.1, .25, .5, .8, .9, .99)) +
+  scale_x_log10(name = "log(time) Relative to Annoy w/ 10 Trees") + 
+  scale_y_sqrt("Error", 
+                limits = c(0.01,1), 
+                breaks = 1 - c(.1, .25, .5, .8, .9, .99)) +
   scale_color_manual(values =      colors_divergent_discrete(nlevels(benchmark$series))(nlevels(benchmark$series))) +
   guides(color = guide_legend(nrow=3)) +
   ggtitle(expression(
-    atop("Time vs. Precision (K = 100, n = 10000)",
-         atop(italic("(Upper Left is Better)"))
+    atop("Time vs. Error Rate (K = 100, n = 10000)",
+         atop(italic("(Lower Left is Better)"))
          )
     ))
 ```
 
+This plot shows times for `RcppAnnoy` to find neighbors for all vertices in the dataset.  
 
-The `largeVis` series are labeled by the number of neighbor-exploration iterations. 
+## Effect of Increasing Number of Trees
 
-The difference between `RcppAnnoy` and `RcppAnnoy-Full` is that `Annoy` is designed for the construction of a static tree that can then be queried, while `largeVis` finds nearest neighbors for all nodes at the same time. The times shown for `RcppAnnoy` are the times to fetch neighbors only for the 10000 rows that were used to test. `RcppAnnoy-full`, like `largeVis`, shows the time to fetch neighbors for the entire dataset. 
+```{r max_iters,echo=F}
+benchmark %>%
+  filter(method == 'largeVis') %>%
+  mutate(series = paste(machine, threshold, max_iters), 
+         series = factor(series)) %>%
+  select(-threshold, -max_iters, -method, -labels, -machine) %>%
+  group_by(series) %>% 
+  filter(n() > 1) %>%
+  ungroup() %>%
+  mutate(series = factor(series)) %>%
+  group_by(series) %>%
+  arrange(n_trees) %>%
+  mutate(error = 1 - (precision / 100)) %>%
+  ggplot(aes(x = time, y = error, color = series, group = series)) + 
+  geom_line(arrow = arrow(length = unit(0.05, "inches"))) +
+  geom_point() +
+  scale_x_log10(name = "log(time) Relative to Annoy w/ 10 Trees") + 
+  scale_y_sqrt("Error", 
+                limits = c(0.01,1), 
+                breaks = 1 - c(.1, .25, .5, .8, .9, .99)) +
+  scale_color_manual(values =      colors_divergent_discrete(nlevels(benchmark$series))(nlevels(benchmark$series))) +
+  ggtitle(expression(
+    atop("Time vs. Error Rate (K = 100, n = 10000)",
+         atop(italic("(Lower Left is Better)"))
+         )
+    ))
+```
 
-The data confirms the recommendation of the paper authors' concerning the number of iterations of neighborhood exploration: While the first iteration offers a substantial benefit, however it is more efficient to improve accuracy by increase the number of trees or size of the tree threshold than by adding iterations. 
+## Effect of Increasing The Tree Threshold
 
-If `randomProjectionTreeSearch` fails to find the desired number of neighbors, usually the best result is obtained by increasing the tree threshold. If `randomProjectionTreeSearch` fails with an error that no neighbors were found for some nodes, and the tree threshold is already reasonable, this may be an indication that duplicates remain in the input data. 
+```{r max_iters,echo=F}
+benchmark %>%
+  filter(method == 'largeVis') %>%
+  mutate(series = paste(machine, n_trees, max_iters), 
+         series = factor(series)) %>%
+  select(-n_trees, -max_iters, -method, -labels, -machine) %>%
+  group_by(series) %>% 
+  filter(n() > 1) %>%
+  ungroup() %>%
+  mutate(series = factor(series)) %>%
+  group_by(series) %>%
+  arrange(threshold) %>%
+  mutate(error = 1 - (precision / 100)) %>%
+  ggplot(aes(x = time, y = error, color = series, group = series)) + 
+  geom_line(arrow = arrow(length = unit(0.05, "inches"))) +
+  geom_point() +
+  scale_x_log10(name = "log(time) Relative to Annoy w/ 10 Trees") + 
+  scale_y_sqrt("Error", 
+                limits = c(0.01,1), 
+                breaks = 1 - c(.1, .25, .5, .8, .9, .99)) +
+  scale_color_manual(values =      colors_divergent_discrete(nlevels(benchmark$series))(nlevels(benchmark$series))) +
+  ggtitle(expression(
+    atop("Time vs. Error Rate (K = 100, n = 10000)",
+         atop(italic("(Lower Left is Better)"))
+         )
+    ))
+```
+
+## Effect of Increasing The Number of Iterations
+
+```{r max_iters,echo=F}
+benchmark %>%
+  filter(method == 'largeVis') %>%
+  mutate(series = paste(machine, n_trees, threshold), 
+         series = factor(series)) %>%
+  select(-n_trees, -threshold, -method, -labels, -machine) %>%
+  group_by(series) %>% 
+  filter(n() > 1) %>%
+  ungroup() %>%
+  mutate(series = factor(series)) %>%
+  group_by(series) %>%
+  arrange(max_iters) %>%
+  mutate(error = 1 - (precision / 100)) %>%
+  ggplot(aes(x = time, y = error, color = series, group = series)) + 
+  geom_line(arrow = arrow(length = unit(0.05, "inches"))) +
+  geom_point() +
+  scale_x_log10(name = "log(time) Relative to Annoy w/ 10 Trees") + 
+  scale_y_sqrt("Error", 
+                limits = c(0.01,1), 
+                breaks = 1 - c(.1, .25, .5, .8, .9, .99)) +
+  ggtitle(expression(
+    atop("Time vs. Error Rate (K = 100, n = 10000)",
+         atop(italic("(Lower Left is Better)"))
+         )
+    ))
+```
+
+The data shows a consistent pattern where adding a single iteration has, a substantial impact on accuracy, but the marginal benefit of additional iterations is low.  This is consistent with the recommendation of the paper authors'.

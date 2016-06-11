@@ -160,8 +160,14 @@ ggplot(ngcoords,
 
 ```{r wikiterms,eval=rebuild,echo=F}
 # # The data file must be obtained directly from the paper authors
-# wikiwords <- readLINE("/mnt/hfsshare/DATASETS/Wiki_embedding/wiki_word_vec_100d.txt")
-# wikiwords[is.nan(wikiwords)] <- 0
+wikiwords <- readr::read_delim("/mnt/hfsshare/DATASETS/Wiki_embedding/word_vec",delim= " ", col_names = FALSE, skip = 1)
+wikiwords <- t(as.matrix(wikiwords[, 2:101]))
+set.seed(1974)
+initcoords <- matrix(rnorm(ncol(wikiwords) * 2), nrow = 2)
+wikiVis <- vis(wikiwords, coords = initcoords, K = 100, tree_threshold = 100, 
+               n_trees = 50)
+
+
 ```
 
 ## Overview of Functions and Hyperparameters

@@ -1,9 +1,7 @@
 #include <RcppArmadillo.h>
 // [[Rcpp::plugins(openmp)]]
 #include <Rcpp.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <fstream>
 using namespace Rcpp;
 
 double relDist(const arma::vec& i, const arma::vec& j) {
@@ -37,38 +35,4 @@ double sparseDist(const arma::sp_mat& i, const arma::sp_mat& j) {
 
 double sparseCosDist(const arma::sp_mat& i, const arma::sp_mat& j) {
   return 1 - (arma::as_scalar((dot(i,j)) / arma::as_scalar(arma::norm(i,2) * arma::norm(j,2))));
-}
-
-/*
- * Function for reading file in the LINE format used by the paper authors for two of their examples.
- */
-// [[Rcpp::export]]
-NumericMatrix readLINE(std::string path) {
-  FILE * infile = fopen(path.c_str(), "r");
-  int N, D;
-  if (fscanf(infile, "%d %d", &N, &D) != 2) stop("File error");
-  NumericMatrix val = NumericMatrix(N, D);
-  std::vector< std::string > nodeNames;
-  double * buffer = (double *) malloc(sizeof(double) * D);
-  for (int n = 0; n < N; n++) {
-    char nodeName [80];
-    if (fscanf(infile, "\n%s ", &nodeName) != 1) stop("Name error.");
-    nodeNames.push_back(nodeName);
-    // double r;
-    // for (int d = 0; d < D; d++) {
-    //   int tim = fscanf(infile, "%lf ", &r);
-    //   Rcout << tim << " ";
-    //   val(n,d) = r;
-    // }
-    // float f;
-    // for (int d = 0; d < D; d++) {
-    //   if (fread(&f, sizeof(float), 1, infile) != 1) stop("Read error.");
-    //   val(n,d) = static_cast<double>(f);
-    // }
-    if (fread((void *)buffer, sizeof(double), D, infile) != D) stop("Read error.");
-    for (int d = 0; d < D; d++) if (buffer[d] < 1e36) val(n,d) = buffer[d];
-    else stop("Bad range");
-  }
-  rownames(val) = Rcpp::wrap(nodeNames);
-  return val;
 }
