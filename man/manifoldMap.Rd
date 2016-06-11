@@ -16,8 +16,6 @@ manifoldMap(x, n = nrow(x), images, scale = 1, ...)
 \item{scale}{Proportion to scale the images to.}
 
 \item{...}{Addiitional parameters passed to \code{plot}.}
-
-\item{transparency}{Whether to add an alpha channel to greyscale images.}
 }
 \description{
 Makes a plot of \code{n} images sampled from \code{images}, positions at coordinates given by \code{x}.

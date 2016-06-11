@@ -1,7 +1,6 @@
 ---
 title: "largeVis"
 output: github_document
-bibliography: vignettes/TangLZM16.bib
 ---
 ```{r getversion,eval=T,echo=F,warning=F,error=F,message=F}
 branch <- system("git branch -v", intern=TRUE)

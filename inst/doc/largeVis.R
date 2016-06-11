@@ -104,8 +104,14 @@ ggplot(ngcoords,
 
 ## ----wikiterms,eval=rebuild,echo=F---------------------------------------
 #  # # The data file must be obtained directly from the paper authors
-#  # wikiwords <- readLINE("/mnt/hfsshare/DATASETS/Wiki_embedding/wiki_word_vec_100d.txt")
-#  # wikiwords[is.nan(wikiwords)] <- 0
+#  wikiwords <- readr::read_delim("/mnt/hfsshare/DATASETS/Wiki_embedding/word_vec",delim= " ", col_names = FALSE, skip = 1)
+#  wikiwords <- t(as.matrix(wikiwords[, 2:101]))
+#  set.seed(1974)
+#  initcoords <- matrix(rnorm(ncol(wikiwords) * 2), nrow = 2)
+#  wikiVis <- vis(wikiwords, coords = initcoords, K = 100, tree_threshold = 100,
+#                 n_trees = 50)
+#  
+#  
 
 ## ----wikihyperparameters,echo=F,eval=rebuild-----------------------------
 #  data(wiki)
@@ -295,10 +301,14 @@ ggplot(faceCoCopy, aes(x = x,
 #  dim(faces) <- c(250, 250, 3, n)
 #  faces <- aperm(faces, c(4,1,2,3)) # n,h,w,c
 #  par(bg = 'grey5', mai=c(0.25, 0.25, 0.25, 0.25))
-#  manifoldMap(x = faceCoords[facesToPlot,1:2],
-#              n = n, images = 1 - faces, scale =  1 / 1000,
-#              xlab = NULL, ylab = NULL, col.lab = 'gray5',
-#              col.axis = 'gray5')
+#  ggManifoldMap(
+#    x = faceCoords[facesToPlot,1:2],
+#    n = n,
+#    images = 1 - faces,
+#    scale =  1 / 1000) +
+#    scale_y_continuous(name = "", breaks = NULL) +
+#    scale_x_continuous(name = "", breaks = NULL) +
+#    ggtitle("Manifold Map of OpenFace Embeddings")
 
 ## ----faceImages5000,eval=buildManifolds,echo=F,results='asis'------------
 #  png(filename = "faceshighres.png",

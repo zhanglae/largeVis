@@ -1,15 +1,4 @@
----
-title: "ANN Benchmarks"
-author: "Amos Elberg"
-date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{ANN Benchmarks}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
----
-
-```{r setupbenchmark,eval=T,echo=F,warning=F,error=F,message=F}
+## ----setupbenchmark,eval=T,echo=F,warning=F,error=F,message=F------------
 # Note to reader:  Please don't steal the semi-distinctive visual style I spent several minutes creating for myself.
 require(ggplot2, 
         quietly = TRUE)
@@ -50,80 +39,43 @@ theme_set(
 )
 rebuild <- FALSE
 if (!exists("buildManifolds")) buildManifolds <- rebuild
-```
 
-## Overview
+## ----performance,echo=F,eval=rebuild-------------------------------------
+#  # benchmark <- readr::read_csv(system.file("extdata", "results.csv", package="largeVis"),
+#  #                              col_names = FALSE)
+#  benchmark1 <- readr::read_csv("../inst/results.csv", col_names = FALSE)
+#  benchmark1$machine <- 1
+#  benchmark2 <- readr::read_csv("../inst/nelsonresults.csv", col_names = FALSE)
+#  benchmark2$machine <- 2
+#  
+#  benchmark <- rbind(benchmark1, benchmark2, benchmark3) %>%
+#    set_colnames(c("time",
+#      "precision",
+#      "n_trees",
+#      "max_iters",
+#      "threshold",
+#      "method",
+#      "tree_type",
+#      "search_type",
+#      "eps",
+#      "machine")
+#      ) %>%
+#    select(-tree_type, -search_type, - eps) %>%
+#    mutate(method = ifelse(grepl("largeVis", method), "largeVis", method),
+#           series = ifelse(grepl("largeVis", method),
+#                           paste(method, max_iters, "iter."),
+#                           method),
+#           series = factor(series),
+#           method = factor(method)) %>%
+#    group_by(machine) %>%
+#    mutate(time = time / min(time))
+#  
+#  #benchmark[(benchmark$n_trees == 10 & benchmark$method == 'RcppAnnoy'),]
+#  
+#  # benchmark$time <- benchmark$time / ifelse(benchmark$machine == 1, 1.444920, 1.535254)
+#  
 
-Besides manifold visualization, `largeVis` also includes an extremely efficient approximate nearest-neighbor search that runs in $O(n)$ time. 
-
-This vignette includes benchmarks and recommendations for adjusting hyperparameters in the neighbor search for best results. 
-
-## Hyperparameters
-
-The `randomProjectionTreeSearch` function has three hyperparameters that trade-off accuracy and efficiency in the neighbor search:
-
-1.  `n_trees` - In the first phase of the function, the number of random projection trees to create.
-2.  `tree_threshold` - The maximum number of any nodes on a random projection tree leaf. If, after branching, the number of nodes in a branch exceeds this threshold, the branch will be divided again. 
-3.  `max_iters` - The number of iterations for the neighborhood-exploration phase of the algorithm.
-
-## Data Collection \& Methodology
-
-The data in the benchmarks below was obtained by running the `benchmark.R` script, which is installed along with the package, on two machines.  
-
-The aim was to replicate as much as possible the methodology used by Erik Bernhardsson's [ANN Benchmark](https://github.com/erikbern/ann-benchmarks) github.  It is not possible to use the same methods exactly.  This is because `ANN Benchmark` is designed for libraries that are designed to build a neighbor index and then rapidly process queries against the index. The measure used by `ANN Benchmark` is therefore queries-per-second.  By contract, `largeVis` is concerned with getting neighbors for all of the nodes in a finite dataset as quickly as possible. 
-
-The data used is the 1-million vector, 128-feature [SIFT Dataset](http://corpus-texmex.irisa.fr/), which is the test data used by `ANN Benchmark`. 
-
-Resulting times were normalized for each machine against the time for `RcppAnnoy` to identify neighbors for 10,000 vectors using 10 trees. 
-
-Results that appear to have used virtual memory, in that the completion time was radically discontinuous with other results from the same machine, were discarded. 
-
-I welcome submissions of output from the script from other hardware. 
-
-## Comparison With Annoy
-
-The following chart illustrates performance versus the `Annoy` library, as implemented through the `RcppAnnoy` R package.
-
-To facilitate comparison with the ANN Benchmark charts, the Y-axis shows $\log(1 / t)$, where $t$ is the execution time relative to the time on the same machine to find neighbors for 10,000 rows using 10 trees. 
-
-```{r performance,echo=F,eval=rebuild}
-# benchmark <- readr::read_csv(system.file("extdata", "results.csv", package="largeVis"), 
-#                              col_names = FALSE)
-benchmark1 <- readr::read_csv("../inst/results.csv", col_names = FALSE)
-benchmark1$machine <- 1
-benchmark2 <- readr::read_csv("../inst/nelsonresults.csv", col_names = FALSE)
-benchmark2$machine <- 2
-
-benchmark <- rbind(benchmark1, benchmark2, benchmark3) %>% 
-  set_colnames(c("time",
-    "precision",
-    "n_trees",
-    "max_iters",
-    "threshold",
-    "method",
-    "tree_type",
-    "search_type",
-    "eps", 
-    "machine")
-    ) %>%
-  select(-tree_type, -search_type, - eps) %>% 
-  mutate(method = ifelse(grepl("largeVis", method), "largeVis", method), 
-         series = ifelse(grepl("largeVis", method), 
-                         paste(method, max_iters, "iter."), 
-                         method), 
-         series = factor(series), 
-         method = factor(method)) %>%
-  group_by(machine) %>%
-  mutate(time = time / min(time))
-
-#benchmark[(benchmark$n_trees == 10 & benchmark$method == 'RcppAnnoy'),]
-
-# benchmark$time <- benchmark$time / ifelse(benchmark$machine == 1, 1.444920, 1.535254)
-
-```
-
-
-```{r plotpeformance,echo=F,fig.width=6,fig.height=6,fig.align='center',warning=FALSE,message=FALSE}
+## ----plotpeformance,echo=F,fig.width=6,fig.height=6,fig.align='center',warning=FALSE,message=FALSE----
 load(system.file("extdata", "benchmark.Rda", package = "largeVis"))
 benchmark %>% 
   dplyr::filter(series != 'RcppAnnoy') %>%
@@ -151,13 +103,8 @@ benchmark %>%
          atop(italic("(Upper Right is Better)"))
          )
     ))
-```
 
-This plot shows times for `RcppAnnoy` to find neighbors for all vertices in the dataset.  
-
-## Number of Trees
-
-```{r n_trees,echo=F,fig.width=5,fig.height=7}
+## ----n_trees,echo=F,fig.width=5,fig.height=7-----------------------------
 bench <- benchmark %>%
   filter(method == 'largeVis') %>%
   select(-series) %>%
@@ -188,18 +135,8 @@ bench %>%
          atop(italic("(Upper Right is Better)"))
          )
     ))
-```
 
-Increasing the number of trees increases the time to complete the tree-search portion of the algorithm linearly. The marginal benefit of doubling the number of trees declines rapidly.
-
-## Tree Threshold
-
-The tree threshold is the maximum number of nodes in a leaf during the tree-search phase.  
-
-The Annoy library fixes the threshold as equivalent to 
-         facet = precision / 100, 
-         facet = ifelse(facet < 0.9, '', 'Closeup'))
-```{r tree_threshold,echo=F}
+## ----tree_threshold,echo=F-----------------------------------------------
 bench <- benchmark %>%
   filter(method == 'largeVis') %>%
   select(-series) %>%
@@ -235,11 +172,8 @@ bench %>%
          atop(italic("(Upper Right is Better)"))
          )
     ))
-```
 
-## Effect of Increasing The Number of Iterations
-
-```{r max_iters,echo=F}
+## ----max_iters,echo=F----------------------------------------------------
 bench <- benchmark %>%
   filter(method == 'largeVis') %>%
   select(-series) %>%
@@ -274,6 +208,4 @@ bench %>%
          atop(italic("(Upper Right is Better)"))
          )
     ))
-```
 
-The data shows a consistent pattern where adding a single iteration has, a substantial impact on accuracy, but the marginal benefit of additional iterations is low.  This is consistent with the recommendation of the paper authors.

@@ -12,7 +12,6 @@ This is an implementation of the `largeVis` algorithm described in (<https://arx
 -   Memory efficiency and performance are excellent. Memory efficiency can be improved further by using utility functions to perform the algorithm in stages. (Explained in the vignette.)
 -   Not yet fully tested:
     -   The alternative distance function (*α* = 0).
-    -   Transparency in the visualization function.
 -   I am attempting to replicate the paper's results with larger datasets. This takes time because my hardware is not as powerful as the authors'. If you have any to volunteer, please contact me!
 
 #### To-do's Before Submission to CRAN
@@ -30,7 +29,7 @@ This Vignette provides an overview of the largeVis package.
 Introduction
 ------------
 
-This package provides `LargeVis` visualizations and fast nearest-neighbor search. The `LargeVis` algorithm, presented in Tang et al. (2016), creates high-quality low-dimensional representations of large, high-dimensional datasets, similar to [t-SNE](https://lvdmaaten.github.io/tsne/).
+This package provides `LargeVis` visualizations and fast nearest-neighbor search. The `LargeVis` algorithm, presented in @tang2016visualizing, creates high-quality low-dimensional representations of large, high-dimensional datasets, similar to [t-SNE](https://lvdmaaten.github.io/tsne/).
 
 These visualizations are useful for data exploration, for visualizing complex non-linear functions, and especially for visualizing embeddings such as learned vectors for images.
 
@@ -40,7 +39,7 @@ In addition, `LargeVis` includes an algorithm for finding approximate k-Nearest 
 
 The package also includes a function for visualizing image embeddings by plotting images at the locations given by the `LargeVis` algorithm.
 
-For a detailed description of the algorithm, please see the original paper, Tang et al. (2016).
+For a detailed description of the algorithm, please see the original paper, @tang2016visualizing.
 
 Package Overview
 ----------------
@@ -50,7 +49,7 @@ The `largeVis` package offers four functions for visualizing high-dimensional da
 1.  `randomProjectionTreeSearch`, a method for finding approximate nearest neighbors.
 2.  `projectKNNs`, which takes as input a weighted nearest-neighbor graph and estimates a projection into a low-dimensional space.
 3.  `vis`, which implements the entire `LargeVis` algorithm.
-4.  `manifoldMap`, which produces a plot for visualizing embeddings of images.
+4.  `manifoldMap` (and companon `ggManifoldMap`), which produce a plot for visualizing embeddings of images.
 
 See the [original paper](https://arxiv.org/abs/1602.00370) for a detailed description of the algorithm.
 
@@ -81,7 +80,7 @@ This function uses a two-phase algorithm to find approximate nearest neighbors. 
 
 (Note that this implementation of `largeVis` differs from the approach taken by `Annoy`, in that `Annoy` always uses the number of features as the leaf threshold, where `largeVis` allows this to be an adjustable parameter.)
 
-The authors of Tang et al. (2016) suggest that a single iteration of the second phase is generally sufficient to obtain satisfactory performance.
+The authors of @tang2016visualizing suggest that a single iteration of the second phase is generally sufficient to obtain satisfactory performance.
 
 See the vignette "ANN Benchmarks" for additional information.
 
@@ -89,7 +88,7 @@ See the vignette "ANN Benchmarks" for additional information.
 
 This function takes as its input a `Matrix::sparseMatrix`, of connections between nodes. The matrix must be symmetric. A non-zero cell implies that node `i` is a nearest neighbor of node `j`, vice-versa, or both. Non-zero values represent the strength of the connection relative to other nearest neighbors of the two nodes.
 
-The `LargeVis` algorithm, explained in detail in Tang et al. (2016), estimates the embedding by sampling from the identified nearest-neighbor connections. For each edge, the algorithm also samples `M` non-nearest neighbor negative samples. `M`, along with *γ* and *α*, control the visualization. *α* controls the desired distance between nearest neighbors. *γ* controls the relative strength of the attractive force between nearest neighbors and repulsive force between non-neighbors.
+The `LargeVis` algorithm, explained in detail in @tang2016visualizing, estimates the embedding by sampling from the identified nearest-neighbor connections. For each edge, the algorithm also samples `M` non-nearest neighbor negative samples. `M`, along with *γ* and *α*, control the visualization. *α* controls the desired distance between nearest neighbors. *γ* controls the relative strength of the attractive force between nearest neighbors and repulsive force between non-neighbors.
 
 The following grid illustrates the effect of the *α* and *γ* hyperparameters, using the `wiki` dataset which is included with the package:
 
@@ -97,7 +96,7 @@ The following grid illustrates the effect of the *α* and *γ* hyperparameters, 
 
 The additional hyperparameters *ρ* and `min-`*ρ* control the starting and final learning rate for the stochastic gradient descent process.
 
-The algorithm can treat positive edge weights in two different ways. The authors of Tang et al. (2016) suggest that edge weights should be used to generate a weighted sampling. However, the algorithm for taking a weighted sample runs in *O*(*n*log*n*). Alternatively, the edge-weights can be applied to the gradients. This is controlled by the `weight_pos_samples` parameter.
+The algorithm can treat positive edge weights in two different ways. The authors of @tang2016visualizing suggest that edge weights should be used to generate a weighted sampling. However, the algorithm for taking a weighted sample runs in *O*(*n*log*n*). Alternatively, the edge-weights can be applied to the gradients. This is controlled by the `weight_pos_samples` parameter.
 
 ### `vis`
 
@@ -288,14 +287,29 @@ Comparison With Annoy
 
 The following chart illustrates performance versus the `Annoy` library, as implemented through the `RcppAnnoy` R package.
 
+To facilitate comparison with the ANN Benchmark charts, the Y-axis shows log(1/*t*), where *t* is the execution time relative to the time on the same machine to find neighbors for 10,000 rows using 10 trees.
+
 <img src="README_files/figure-markdown_github/plotpeformance-1.png" style="display: block; margin: auto;" />
 
-The `largeVis` series are labeled by the number of neighbor-exploration iterations.
+This plot shows times for `RcppAnnoy` to find neighbors for all vertices in the dataset.
 
-The difference between `RcppAnnoy` and `RcppAnnoy-Full` is that `Annoy` is designed for the construction of a static tree that can then be queried, while `largeVis` finds nearest neighbors for all nodes at the same time. The times shown for `RcppAnnoy` are the times to fetch neighbors only for the 10000 rows that were used to test. `RcppAnnoy-full`, like `largeVis`, shows the time to fetch neighbors for the entire dataset.
+Number of Trees
+---------------
 
-The data confirms the recommendation of the paper authors' concerning the number of iterations of neighborhood exploration: While the first iteration offers a substantial benefit, however it is more efficient to improve accuracy by increase the number of trees or size of the tree threshold than by adding iterations.
+![](README_files/figure-markdown_github/n_trees-1.png)
 
-If `randomProjectionTreeSearch` fails to find the desired number of neighbors, usually the best result is obtained by increasing the tree threshold. If `randomProjectionTreeSearch` fails with an error that no neighbors were found for some nodes, and the tree threshold is already reasonable, this may be an indication that duplicates remain in the input data.
+Increasing the number of trees increases the time to complete the tree-search portion of the algorithm linearly. The marginal benefit of doubling the number of trees declines rapidly.
 
-Tang, Jian, Jingzhou Liu, Ming Zhang, and Qiaozhu Mei. 2016. “Visualizing Large-Scale and High-Dimensional Data.” In *Proceedings of the 25th International Conference on World Wide Web*, 287–97. International World Wide Web Conferences Steering Committee.
+Tree Threshold
+--------------
+
+The tree threshold is the maximum number of nodes in a leaf during the tree-search phase.
+
+The Annoy library fixes the threshold as equivalent to facet = precision / 100, facet = ifelse(facet &lt; 0.9, '', 'Closeup')) ![](README_files/figure-markdown_github/tree_threshold-1.png)
+
+Effect of Increasing The Number of Iterations
+---------------------------------------------
+
+![](README_files/figure-markdown_github/max_iters-1.png)
+
+The data shows a consistent pattern where adding a single iteration has, a substantial impact on accuracy, but the marginal benefit of additional iterations is low. This is consistent with the recommendation of the paper authors.
