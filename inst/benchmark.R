@@ -48,7 +48,7 @@ benchmark <- function(path,
           n_trees = n_trees,
           max_iterations = max_iters,
           tree_threshold = threshold,
-          method = "largeVis-efficient-one",
+          method = "largeVis",
           tree_type = "",
           searchtype = "",
           eps = 0)
@@ -202,13 +202,13 @@ samplepath <- "./samples.Rda"
 #                      thresholds = c(128),
 #                      iters = c(1, 0, 2, 3),
 #                      K = 100)
-results2 <- benchmark(path,
-                     samplepath,
-                     n = 10000,
-                     tree_range = c(10, 20, 50),
-                     thresholds = c(10, 20, 50, 80, 256, 512),
-                     iters = c(1),
-                     K = 100)
+#results2 <- benchmark(path,
+#                     samplepath,
+#                     n = 10000,
+#                     tree_range = c(10, 20, 50),
+#                     thresholds = c(10, 20, 50, 80, 256, 512),
+#                     iters = c(1),
+#                     K = 100)
 # Annoyresults2 <- benchmarkAnnoy(path,
 #                                samplepath,
 #                                tree_range = c(10, 20, 50, 100, 200, 400),
@@ -220,5 +220,24 @@ results2 <- benchmark(path,
 #                              epss = c(.1, .5, 1,2,5),
 #                              n = 10000,
 #                              K = 100)
-
-print(results)
+# results2 <- benchmark(path,
+#                      samplepath,
+#                      n = 10000,
+#                      tree_range = c(2),
+#                      thresholds = c(50, 100, 250),
+#                      iters = c(0,1),
+#                      K = 100)
+results2 <- benchmark(path,
+                     samplepath,
+                     n = 10000,
+                     tree_range = c(4),
+                     thresholds = c(125),
+                     iters = c(1),
+                     K = 100)
+results2 <- benchmark(path,
+                     samplepath,
+                     n = 10000,
+                     tree_range = c(5),
+                     thresholds = c(20, 40, 100),
+                     iters = c(0,1),
+                     K = 100)

@@ -17,6 +17,7 @@
 #'
 #' @importFrom grDevices as.raster
 #' @importFrom graphics rasterImage
+#' @seealso \code{\link{ggManifoldMap}}
 #' @export
 #' @examples \dontrun{
 #' load("mnist.Rda")

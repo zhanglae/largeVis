@@ -3,13 +3,13 @@ largeVis
 
 [![Travis-CI Build Status](https://travis-ci.org/elbamos/largeVis.svg?branch=0.1.6)](https://travis-ci.org/elbamos/largeVis) [![Coverage Status](https://img.shields.io/codecov/c/github/elbamos/largeVis/0.1.6.svg))](https://codecov.io/github/elbamos/largeVis?branch=%22) [![https://gitter.im/elbamos/largeVis](https://badges.gitter.im/elbamos/largeVis.svg)](https://gitter.im/elbamos/largeVis?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/elbamos/largeVis?branch=0.1.6&svg=true)](https://ci.appveyor.com/project/elbamos/largeVis)
 
-This is an implementation of the `largeVis` algorithm described in (<https://arxiv.org/abs/1602.00370>). It also incorporates a very fast algorithm for estimating k-nearest neighbors, implemented in C++ with `Rcpp` and `OpenMP`, and for visualizing a map of the manifold in the manner demonstrated by [Andrej Karpathy](http://cs.stanford.edu/people/karpathy/cnnembed/).
+This is an implementation of the `largeVis` algorithm described in (<https://arxiv.org/abs/1602.00370>). It also incorporates a very fast algorithm for estimating k-nearest neighbors, implemented in C++ with `Rcpp` and `OpenMP`, and for visualizing a map of the manifold like [this](http://cs.stanford.edu/people/karpathy/cnnembed/).
 
 #### Project Status & Caveats
 
 -   Support for sparse matrices!
--   Now tested with (dense) matrices &gt; 1 Million rows, and sparse matrices with &gt; 10,000 features.
--   Memory efficiency and performance are excellent. Memory efficiency can be improved further by using utility functions to perform the algorithm in stages. (Explained in the vignette.)
+-   Now tested with (dense) matrices &gt; 2.5 Million rows, and sparse matrices with &gt; 10,000 features.
+-   Performance is good. Memory efficiency is still an issue, but can be improved further by using utility functions to perform the algorithm in stages. (Explained in the vignette.)
 -   Not yet fully tested:
     -   The alternative distance function (*α* = 0).
 -   I am attempting to replicate the paper's results with larger datasets. This takes time because my hardware is not as powerful as the authors'. If you have any to volunteer, please contact me!
@@ -30,7 +30,7 @@ This Vignette provides an overview of the largeVis package.
 Introduction
 ------------
 
-This package provides `LargeVis` visualizations and fast nearest-neighbor search. The `LargeVis` algorithm, presented in @tang2016visualizing, creates high-quality low-dimensional representations of large, high-dimensional datasets, similar to [t-SNE](https://lvdmaaten.github.io/tsne/).
+This package provides `LargeVis` visualizations and fast nearest-neighbor search. The `LargeVis` algorithm, presented in Tang et al. (2016), creates high-quality low-dimensional representations of large, high-dimensional datasets, similar to [t-SNE](https://lvdmaaten.github.io/tsne/).
 
 These visualizations are useful for data exploration, for visualizing complex non-linear functions, and especially for visualizing embeddings such as learned vectors for images.
 
@@ -40,7 +40,7 @@ In addition, `LargeVis` includes an algorithm for finding approximate k-Nearest 
 
 The package also includes a function for visualizing image embeddings by plotting images at the locations given by the `LargeVis` algorithm.
 
-For a detailed description of the algorithm, please see the original paper, @tang2016visualizing.
+For a detailed description of the algorithm, please see the original paper, Tang et al. (2016).
 
 Package Overview
 ----------------
@@ -83,7 +83,7 @@ This function uses a two-phase algorithm to find approximate nearest neighbors. 
 
 (Note that this implementation of `largeVis` differs from the approach taken by `Annoy`, in that `Annoy` always uses the number of features as the leaf threshold, where `largeVis` allows this to be an adjustable parameter.)
 
-The authors of @tang2016visualizing suggest that a single iteration of the second phase is generally sufficient to obtain satisfactory performance.
+The authors of Tang et al. (2016) suggest that a single iteration of the second phase is generally sufficient to obtain satisfactory performance.
 
 See the vignette "ANN Benchmarks" for additional information.
 
@@ -91,7 +91,7 @@ See the vignette "ANN Benchmarks" for additional information.
 
 This function takes as its input a `Matrix::sparseMatrix`, of connections between nodes. The matrix must be symmetric. A non-zero cell implies that node `i` is a nearest neighbor of node `j`, vice-versa, or both. Non-zero values represent the strength of the connection relative to other nearest neighbors of the two nodes.
 
-The `LargeVis` algorithm, explained in detail in @tang2016visualizing, estimates the embedding by sampling from the identified nearest-neighbor connections. For each edge, the algorithm also samples `M` non-nearest neighbor negative samples. `M`, along with *γ* and *α*, control the visualization. *α* controls the desired distance between nearest neighbors. *γ* controls the relative strength of the attractive force between nearest neighbors and repulsive force between non-neighbors.
+The `LargeVis` algorithm, explained in detail in Tang et al. (2016), estimates the embedding by sampling from the identified nearest-neighbor connections. For each edge, the algorithm also samples `M` non-nearest neighbor negative samples. `M`, along with *γ* and *α*, control the visualization. *α* controls the desired distance between nearest neighbors. *γ* controls the relative strength of the attractive force between nearest neighbors and repulsive force between non-neighbors.
 
 The following grid illustrates the effect of the *α* and *γ* hyperparameters, using the `wiki` dataset which is included with the package:
 
@@ -99,7 +99,7 @@ The following grid illustrates the effect of the *α* and *γ* hyperparameters, 
 
 The additional hyperparameters *ρ* and `min-`*ρ* control the starting and final learning rate for the stochastic gradient descent process.
 
-The algorithm can treat positive edge weights in two different ways. The authors of @tang2016visualizing suggest that edge weights should be used to generate a weighted sampling. However, the algorithm for taking a weighted sample runs in *O*(*n*log*n*). Alternatively, the edge-weights can be applied to the gradients. This is controlled by the `weight_pos_samples` parameter.
+The algorithm can treat positive edge weights in two different ways. The authors of Tang et al. (2016) suggest that edge weights should be used to generate a weighted sampling. However, the algorithm for taking a weighted sample runs in *O*(*n*log*n*). Alternatively, the edge-weights can be applied to the gradients. This is controlled by the `weight_pos_samples` parameter.
 
 ### `vis`
 
@@ -137,19 +137,15 @@ if (exists("trainData")) {
 
 <img src="README_files/figure-markdown_github/drawmanifoldmap-1.png" style="display: block; margin: auto;" />
 
-The code is disabled by default in this vignette for data size reasons.
-
 #### Example with Faces
 
 The following examples visualize facial-recognition embedding vectors from the [Labeled Faces in the Wild](http://vis-www.cs.umass.edu/lfw/) dataset. The embedding vectors were graciously provided by [Brandon Amos](https://bamos.github.io/) of the [OpenFace](https://cmusatyalab.github.io/openface/) project. Similar vectors may be generated for images using the OpenFace `batch-represent` command.
 
-OpenFace embedding vectors encode an image in such a way that the embeddings for multiple images of the same person should be similar. This is illustrated on the first plot below, which highlights the locations of the embedding vectors for images of 10 selected individuals. (The 10 were selected on the basis that there are a large number of images of each in the dataset, and the author would recognize them.)
+OpenFace embedding vectors encode an image in such a way that the embeddings for multiple images of the same person should be similar. This is illustrated on the first plot below, which highlights the locations of the embedding vectors for images of 10 selected individuals.
 
 ![](README_files/figure-markdown_github/plotFaceVectors-1.png)
 
 The function of `manifoldMap` is illustrated in the following plot, which places 500 images from the dataset at the locations given by the `largeVis` map.
-
-The plot is disabled by default because it requires obtaining the face images directly from [Labeled Faces in the Wild](http://vis-www.cs.umass.edu/lfw/).
 
 ![](README_files/figure-markdown_github/faceImages-1.png)
 
@@ -228,27 +224,38 @@ The implementation is not optimized for cosine distances. Using cosine distances
 Memory Consumption
 ------------------
 
-The algorithm is necessarily memory-intensive for large datasets. `neighborsToVectors`, `distance`, and `buildEdgeMatrix` are available as separate functions to facilitate memory-efficient handling of large datasets, because the high-dimensional dataset is not needed after distances have been calculated. In this case, the workflow is:
+The algorithm is necessarily memory-intensive for large datasets.
+
+A simple way to reduce peak memory usage, is to turn-off the `save_neighbors` and `save_sigmas` parameters when running `vis`.
+
+If this is insufficient, the steps of the algorithm can be run separately with the `neighborsToVectors`, `distance`, and `buildEdgeMatrix` functions. In this case, the workflow is:
 
 ``` r
 neighbors <- randomProjectionTreeSearch(largeDataset)
 neighborIndices <- neighborsToVectors(neighbors)
 rm(neighbors)
+gc()
 distances <- distance(x = largeDataset, 
                       i = neighborIndices$i, 
                       j =neighborIndices$j)
 rm(largeDataset)
+gc()
 wij <- buildEdgeMatrix(i = neighborIndices$i, 
                        j = neighborIndices$j, 
                        d = distances)
 rm(distances, neighborIndices)
+gc()
 coords <- projectKNNs(wij$wij)
 ```
 
+Note that `gc()` is being called explicitly. The reason is that R will not garbage collect while executing the package's C++ functions, which can require substantial temporary RAM.
+
 In testing, this method reduced peak RAM requirements by more than 70%.
 
-Bibliography
-------------
+Memory requirements during the neighbor search may be managed by reducing `n_trees` and increasing the `tree_threshold`. The decrease in precision is marginal, and may be compensated-for by increasing `max_iters`. See the benchmarks vignette for further detail.
+
+References
+----------
 
 Benchmarks
 ==========
@@ -274,11 +281,9 @@ Data Collection & Methodology
 
 The data in the benchmarks below was obtained by running the `benchmark.R` script, which is installed along with the package, on two machines.
 
-The aim was to replicate as much as possible the methodology used by Erik Bernhardsson's [ANN Benchmark](https://github.com/erikbern/ann-benchmarks) github. It is not possible to use the same methods exactly. This is because `ANN Benchmark` is designed for libraries that are designed to build a neighbor index and then rapidly process queries against the index. The measure used by `ANN Benchmark` is therefore queries-per-second. By contract, `largeVis` is concerned with getting neighbors for all of the nodes in a finite dataset as quickly as possible.
+The aim was to replicate as much as possible the methodology used by Erik Bernhardsson's [ANN Benchmark](https://github.com/erikbern/ann-benchmarks) github. However, `ANN Benchmark` is designed for libraries that are designed to build a neighbor index and then rapidly process queries against the index. The measure used by `ANN Benchmark` is therefore queries-per-second. By contract, `largeVis` is concerned with getting neighbors for all of the nodes in a finite dataset as quickly as possible.
 
-Times shown for `RcppAnnoy` include the time to build a searchable index and query neighbors for all rows in the dataset. This is more directly comparable to `largeVis`, and more favorable to `RcppAnnoy` because the time to build the index is amortized over a larger number of rows.
-
-Times are expressed in number of rows per minute, for ease of comparison with `ANN Benchmark`. Tests were run on two machines, however each chart below shows results from only one.
+Times shown for `RcppAnnoy` include the time to build a searchable index and query neighbors for all rows in the dataset.
 
 The data used is the 1-million vector, 128-feature [SIFT Dataset](http://corpus-texmex.irisa.fr/), which is the test data used by `ANN Benchmark`.
 
@@ -295,26 +300,29 @@ To facilitate comparison with the ANN Benchmark charts, the Y-axis shows log(1/*
 
 <img src="README_files/figure-markdown_github/plotpeformance-1.png" style="display: block; margin: auto;" />
 
-Equivalence of Number of Trees and Tree Threshold
--------------------------------------------------
+Approximate Equivalence of Number of Trees and Tree Threshold
+-------------------------------------------------------------
 
 There is an approximate trade-off in memory use between the tree threshold and number of trees. Peak memory consumption during the tree search phase = N \* n\_trees \* threshold.
 
-The trade-off is not precise because the tree split phase may return fewer nodes, per tree, than the threshold.
+The trade-off is not precise because the tree split phase will return fewer nodes per tree than the threshold. On average, it should return about 3/4 of the threshold.
 
-On the following chart, points that share the same color share the same values of n\_trees \* threshold (and number of neighborhood exploration iterations).
+On the following chart, points that share the same values of n\_trees \* threshold, referred to as `tth`, (and number of neighborhood exploration iterations), are shown as the same series.
 
 ![](README_files/figure-markdown_github/constn-1.png)
 
-Results with constant n\_trees \* threshold tend to cluster together as expected.
+Results that hold nn constant while varying the number of trees and threshold tend to cluster together, however increasing the number of trees (while holding tth constant) tends to improve accuracy and decrease speed. The degree of dispersion increases when a neighborhood exploration iteration is added.
 
-In general, with n\_trees \* threshold held constant, increasing the number of trees tends to improve accuracy and increase execution time.
+On the charts below, n\_trees \* threshold is referred to as `tth`.
 
-On the charts below, n\_trees \* threshold is referred to as `nn`.
-
-Effect of Increasing `nn` vs. `max_iters`
------------------------------------------
+Effect of Increasing `tth` vs. `max_iters`
+------------------------------------------
 
 ![](README_files/figure-markdown_github/tree_threshold-1.png)
 
-A single iteration clearly has substantial impact on accuracy. The marginal benefit of additional iterations declines, but adding a second iteration is a more efficient way to improve accuracy than increasing `nn`. This is consistent with the recommendation of the paper authors.
+A single iteration clearly has substantial impact on accuracy. The marginal benefit of additional iterations declines, but adding a second iteration is a more efficient way to improve accuracy than increasing tth. This is consistent with the recommendation of the paper authors.
+
+References
+==========
+
+Tang, Jian, Jingzhou Liu, Ming Zhang, and Qiaozhu Mei. 2016. “Visualizing Large-Scale and High-Dimensional Data.” In *Proceedings of the 25th International Conference on World Wide Web*, 287–97. International World Wide Web Conferences Steering Committee.

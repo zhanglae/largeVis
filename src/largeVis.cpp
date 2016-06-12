@@ -747,118 +747,140 @@ arma::mat sgd(arma::mat coords,
   const int posSampleLength = ((nBatches > 1000000) ? 1000000 : (int) nBatches);
   vec positiveSamples = randu<vec>(posSampleLength);
 
-  // Cache some variables to make memory allocation cheaper
+  // Cache some variables
   vec::iterator posEnd = positiveEdgeWeights.end();
+  vec::iterator posBegin = positiveEdgeWeights.begin();
   vec::iterator negBegin = negativeSampleWeights.begin();
   vec::iterator negEnd = negativeSampleWeights.end();
   ivec::iterator searchBegin = is.begin();
   // Iterate through the edges in the positiveEdges vector
 #pragma omp parallel for shared(coords, positiveSamples) schedule(static)
-  for (long eIdx=0; eIdx < nBatches; eIdx++) {
-    if (progress.increment()) {
-      const double posTarget = *(positiveSamples.begin() + (eIdx % posSampleLength));
-      int k;
-      int e_ij;
-      if (useWeights) {
-        e_ij = posTarget * (E - 1);
-      } else {
-        e_ij = distance(positiveEdgeWeights.begin(),
-                             upper_bound(positiveEdgeWeights.begin(),
-                                              posEnd,
-                                              posTarget));
-      }
-      const int i = is[e_ij];
-      const int j = js[e_ij];
-
-      const double localRho = rho - ((rho - minRho) * eIdx / nBatches);
-
-      //if ((randn<vec>(1))[0] < 0) swap(i, j);
-
-      const vec y_i = coords.col(i);
-      const vec y_j = coords.col(j);
-
-      // wij
-      const double w = (useWeights) ? ws[e_ij] : 1;
-
-      const double dist_ij = dist(y_i, y_j);
-
-      const vec d_dist_ij = (y_i - y_j) / sqrt(dist_ij);
-      double p_ij;
-      if (alpha == 0)   p_ij =   1 / (1 +      exp(dist_ij));
-      else              p_ij =   1 / (1 + (alpha * dist_ij));
-
-      vec d_p_ij;
-      if (alpha == 0) d_p_ij =  d_dist_ij * -2 * dist_ij * exp(dist_ij) / pow(1 + exp(dist_ij), 2);
-      else            d_p_ij =  d_dist_ij * -2 * dist_ij * alpha        / pow(1 +    (dist_ij * alpha),2);
-
-      //double o = log(p_ij);
-      const vec d_j = (1 / p_ij) * d_p_ij;
-      // alternative: d_i - 2 * alpha * (y_i - y_j) / (alpha * sum(square(y_i - y_j)))
-      vec d_i = d_j;
-
-      // Setup negative search
-      vec samples = sort(randu<vec>(M));
-      vec::iterator targetIt = samples.begin();
-      int sampleIdx = 0;
-      // The indices of the nodes with edges to i
-      int m = 0;
-      vec::iterator negativeIterator = negBegin;
-      while (m < M) {
-        if (sampleIdx % M == 0) {
-          samples.randu();
-          samples = sort(samples);
-          targetIt = samples.begin();
-          negativeIterator = negBegin;
-        }
-        // binary search implementing weighted sampling
-        const double target = targetIt[sampleIdx++ % M];
-        int k;
-        if (useWeights) k = target * (N - 1);
-        else {
-          negativeIterator = upper_bound(negativeIterator,
-                                              negEnd,
-                                              target);
-          k = negativeIterator - negBegin;
-        }
-
-        if (k == i ||
-            k == j ||
-            binary_search(searchBegin + ps[i],
-                               searchBegin + ps[i + 1] - 1,
-                               k)) continue;
-        const vec y_k = coords.col(k);
-
-        const double dist_ik = dist(y_i, y_k);
-        if (dist_ik == 0 || dist_ik > (14 * (1 + (int) (sampleIdx / M)))) continue; // Duplicates and distances too large to care
-
-        const vec d_dist_ik = (y_i - y_k) / sqrt(dist_ik);
-
-        double p_ik;
-        if (alpha == 0) p_ik  =  1 - (1 / (1 +      exp(dist_ik)));
-        else            p_ik  =  1 - (1 / (1 + (alpha * dist_ik)));
-
-        vec d_p_ik;
-        if (alpha == 0) d_p_ik =  d_dist_ik * 2 * dist_ik * exp(dist_ik) / pow(1 +      exp(dist_ik),2);
-        else            d_p_ik =  d_dist_ik * 2 * dist_ik * alpha        / pow(1 + (alpha * dist_ik),2);
-        //o += (gamma * log(p_ik));
-
-        const vec d_k = (gamma / p_ik) * d_p_ik;
-        // alternative:  d_k = 2 * alpha * (y_i - y_k) / (square(1 + (alpha * sum(square(y_i - y_k)))) * (1 - (1 / (alpha * sum(square(y_i - y_k))))))
-
-        d_i += d_k;
-        for (int idx = 0; idx < D; idx++) coords(idx,k) -= d_k[idx] * localRho * w;
-
-        m++;
-      }
-
-      for (int idx = 0; idx < D; idx++) {
-        coords(idx,j) -=  d_j[idx] * w * localRho;
-        coords(idx,i) +=  d_i[idx] * w * localRho;
-      }
-
-      if (eIdx > 0 &&
-          eIdx % posSampleLength == 0) positiveSamples.randu();
+  for (long eIdx=0; eIdx < nBatches; eIdx++) if (progress.increment()) {
+    const double posTarget = *(positiveSamples.begin() + (eIdx % posSampleLength));
+    int k;
+    int e_ij;
+    if (useWeights) {
+      e_ij = posTarget * (E - 1);
+    } else {
+      e_ij = distance(posBegin, upper_bound(posBegin,
+                                            posEnd,
+                                            posTarget));
     }
+    const int i = is[e_ij];
+    const int j = js[e_ij];
+    // Learning rate
+    const double localRho = rho - ((rho - minRho) * eIdx / nBatches);
+
+    const vec y_i = coords.col(i);
+    const vec y_j = coords.col(j);
+
+    // wij
+    const double w = (useWeights) ? ws[e_ij] : 1;
+    // Calculate the positive gradient, applying the chain rule
+    const double dist_ij = dist(y_i, y_j);
+
+    const vec d_dist_ij = (y_i - y_j) / sqrt(dist_ij);
+    double p_ij;
+    if (alpha == 0)   p_ij =   1 / (1 +      exp(dist_ij));
+    else              p_ij =   1 / (1 + (alpha * dist_ij));
+
+    vec d_p_ij;
+    if (alpha == 0) d_p_ij =  d_dist_ij * -2 * dist_ij * exp(dist_ij) / pow(1 + exp(dist_ij), 2);
+    else            d_p_ij =  d_dist_ij * -2 * dist_ij * alpha        / pow(1 +    (dist_ij * alpha),2);
+
+    //double o = log(p_ij); // The objective function, which we don't need to calculate
+    // The gradient for j is the negative of the gradient for i, before counting negative
+    // samples.
+    const vec d_j = (1 / p_ij) * d_p_ij;
+    // alternative: d_i - 2 * alpha * (y_i - y_j) / (alpha * sum(square(y_i - y_j)))
+    vec d_i = d_j;
+
+    /*
+     * The negative search needs M nodes that don't have edges with i,
+     * and the search is weighted unless useWeights == true.
+     *
+     * Generate M random numbers from a uniform [0,1) distribution,
+     * and sort them. Each draw, find the matching position in the
+     * negative weights vector by binary search, and keep the position
+     * of the iterator for the next draw. To determine if the draw has
+     * an edge with i, take advantage of the compressed-sparse column
+     * format of the input, using a binary search of the i's vector
+     * between indices given by ps[i] and ps[i + 1].
+     *
+     */
+    vec samples = vec(M);
+    vec::iterator targetIt = samples.begin();
+    vec::iterator endIt = samples.end();
+    int sampleIdx = 0;
+    ivec::iterator searchBegini = searchBegin + ps[i];
+    ivec::iterator searchEndi = searchBegin + ps[i + 1];
+    int m = 0;
+    vec::iterator negativeIterator;
+    while (m < M) {
+      if (sampleIdx % M == 0) {
+        samples.randu();
+        std::sort(targetIt, endIt);
+        negativeIterator = negBegin;
+      }
+      // binary search implementing weighted sampling
+      const double target = targetIt[sampleIdx++ % M];
+      int k;
+      if (useWeights) k = target * (N - 1);
+      else {
+        negativeIterator = upper_bound(negativeIterator,
+                                            negEnd,
+                                            target);
+        k = negativeIterator - negBegin;
+     }
+      // Check that the draw isn't one of i's edges
+      if (k == i ||
+          k == j ||
+          binary_search( searchBegini,
+                         searchEndi,
+                         k)) continue;
+      const vec y_k = coords.col(k);
+
+      const double dist_ik = dist(y_i, y_k);
+      /*
+       * Make sure the drawn vertex isn't in a position identical to i,
+       * which would cause the gradients to be ill-defined. Also, ignore
+       * negative examples that are beyond a distance threshold. Increment
+       * the distance threshold every M samples to avoid an infinite loop.
+       */
+      if (dist_ik == 0 ||
+          dist_ik > (14 * (1 + (int) (sampleIdx / M)))) continue;
+
+      const vec d_dist_ik = (y_i - y_k) / sqrt(dist_ik);
+
+      double p_ik;
+      if (alpha == 0) p_ik  =  1 - (1 / (1 +      exp(dist_ik)));
+      else            p_ik  =  1 - (1 / (1 + (alpha * dist_ik)));
+
+      vec d_p_ik;
+      if (alpha == 0) d_p_ik =  d_dist_ik * 2 * dist_ik * exp(dist_ik) / pow(1 +      exp(dist_ik),2);
+      else            d_p_ik =  d_dist_ik * 2 * dist_ik * alpha        / pow(1 + (alpha * dist_ik),2);
+      //o += (gamma * log(p_ik));
+
+      const vec d_k = (gamma / p_ik) * d_p_ik;
+      // alternative:  d_k = 2 * alpha * (y_i - y_k) / (square(1 + (alpha * sum(square(y_i - y_k)))) * (1 - (1 / (alpha * sum(square(y_i - y_k))))))
+
+      d_i += d_k;
+      for (int idx = 0; idx < D; idx++) coords(idx,k) -= d_k[idx] * localRho * w;
+
+      m++;
+    }
+  /*
+   * For whatever reason, setting the coordinates point-by-point is faster than
+   * using the underlying library to set the whole column at once.
+   *
+   */
+    for (int idx = 0; idx < D; idx++) {
+      coords(idx,j) -=  d_j[idx] * w * localRho;
+      coords(idx,i) +=  d_i[idx] * w * localRho;
+    }
+
+    if (eIdx > 0 &&
+        eIdx % posSampleLength == 0) positiveSamples.randu();
   }
   return coords;
 };

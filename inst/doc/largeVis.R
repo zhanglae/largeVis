@@ -102,16 +102,39 @@ ggplot(ngcoords,
   scale_y_continuous(name = "", limits = c(-2, 2.5), breaks = NULL) +
   ggtitle("20 Newsgroups")
 
-## ----wikiterms,eval=rebuild,echo=F---------------------------------------
+## ----wikiterms,eval=F,echo=F---------------------------------------------
 #  # # The data file must be obtained directly from the paper authors
 #  wikiwords <- readr::read_delim("/mnt/hfsshare/DATASETS/Wiki_embedding/word_vec",delim= " ", col_names = FALSE, skip = 1)
 #  wikiwords <- t(as.matrix(wikiwords[, 2:101]))
 #  set.seed(1974)
 #  initcoords <- matrix(rnorm(ncol(wikiwords) * 2), nrow = 2)
-#  wikiVis <- vis(wikiwords, coords = initcoords, K = 100, tree_threshold = 100,
+#  wikiVis <- vis(wikiwords,
+#                 coords = initcoords,
+#                 K = 100,
+#                 tree_threshold = 100,
 #                 n_trees = 50)
-#  
-#  
+#  wikiwords <- readr::read_delim("/mnt/hfsshare/DATASETS/Wiki_embedding/word_vec",delim= " ", col_names = FALSE, skip = 1)
+#  wikiwords <- wikiwords[,1]$X1
+#  wikilabels <- readr::read_delim("/mnt/hfsshare/DATASETS/Wiki_embedding/wiki_word_label.txt",
+#                                  col_names = FALSE, delim = "\t")
+#  words <- data.frame(word = wikiwords,
+#                      labelrow = match(wikiwords, wikilabels$X1))
+#  words$label <- wikilabels$X2[words$labelrow]
+#  words <- cbind(words,
+#                 data.frame(t(wikiVis$coords)))
+#  colnames(words) <- c('word', 'labelrow', 'label', 'x', 'y')
+
+## ----drawwikiwords,echo=F,eval=T,warning=F,message=F---------------------
+load(system.file("extdata", "wikiwords.Rda", package = "largeVis"))
+ggplot(words, aes(x = x, y = y, color = label)) + 
+  geom_point(size = 0.01, alpha = 0.5) +
+  scale_color_gradientn(colors = colors_divergent_discrete(11)(11)) +
+  guides(color = FALSE) +
+  scale_x_continuous("", limits = c(-38, 38), breaks = NULL) + 
+  scale_y_continuous("", limits = c(-38, 38), breaks = NULL) +
+  ggtitle(expression(atop("Wiki Word Vectors", atop(paste(sep = " ", "K = 100,", gamma, 
+                           "= 7, M = 5,", alpha, "= 1, n_trees = 50,",
+                           "max_iters = 1, threshold = 100")))))
 
 ## ----wikihyperparameters,echo=F,eval=rebuild-----------------------------
 #  data(wiki)
@@ -232,13 +255,16 @@ if (exists("trainData")) {
   manifoldMap(mnistCoords[,1:2],
       n = 5000,
       scale = 0.003,
-      transparency = F,
       images = trainData,
       xlab = "", 
       ylab = "",
       xlim = c(-2, 2),
       ylim = c(-2, 2))
 } 
+
+## ----nomnist,eval=!buildManifolds,echo=F,results='asis'------------------
+#  cat("The plot is disabled by default because it requires the MNIST dataset.  To recreate the plot, change the vignette script to point to the downloaded images.\n")
+#  cat("The MNIST data may be obtained using the `darch` package, available on CRAN, with the commands `provideMNIST(folder = 'download location', download = TRUE)` followed by `readMNIST(folder = 'download location')`")
 
 ## ----lfw,echo=F,eval=rebuild---------------------------------------------
 #  data("facevectors")
@@ -286,39 +312,42 @@ ggplot(faceCoCopy, aes(x = x,
   ggtitle("Positions of Embedding Vectors for Selected Individuals")
 
 ## ----faceImages,eval=buildManifolds,echo=F,fig.width=8,fig.height=8------
-#  load(system.file("extdata", "faceLabels.Rda", package="largeVis"))
-#  library(jpeg)
-#  set.seed(1974)
-#  n <- 500
-#  facesToPlot <- sample(nrow(faceCoords), n)
-#  
-#  faces <- apply(faceLabels[facesToPlot,], MARGIN = 1, FUN = function(x) {
-#    ret <- readJPEG(paste("/mnt/hfsshare/DATASETS/lfw faces/lfw",
-#                  x[1], sub("png", "jpg", x[2]), sep = "/"))
-#    dim(ret) <- c(250, 250, 3)
-#    ret
-#  })
-#  dim(faces) <- c(250, 250, 3, n)
-#  faces <- aperm(faces, c(4,1,2,3)) # n,h,w,c
-#  par(bg = 'grey5', mai=c(0.25, 0.25, 0.25, 0.25))
-#  ggManifoldMap(
-#    x = faceCoords[facesToPlot,1:2],
-#    n = n,
-#    images = 1 - faces,
-#    scale =  1 / 1000) +
-#    scale_y_continuous(name = "", breaks = NULL) +
-#    scale_x_continuous(name = "", breaks = NULL) +
-#    ggtitle("Manifold Map of OpenFace Embeddings")
+load(system.file("extdata", "faceLabels.Rda", package="largeVis"))
+library(jpeg)
+set.seed(1974)
+n <- 500
+facesToPlot <- sample(nrow(faceCoords), n)
+
+faces <- apply(faceLabels[facesToPlot,], MARGIN = 1, FUN = function(x) {
+  ret <- readJPEG(paste("/mnt/hfsshare/DATASETS/lfw faces/lfw",
+                x[1], sub("png", "jpg", x[2]), sep = "/"))
+  dim(ret) <- c(250, 250, 3)
+  ret
+})
+dim(faces) <- c(250, 250, 3, n)
+faces <- aperm(faces, c(4,1,2,3)) # n,h,w,c
+par(bg = 'grey5', mai=c(0.25, 0.25, 0.25, 0.25))
+ggManifoldMap(
+  x = faceCoords[facesToPlot,1:2], 
+  n = n, 
+  images = 1 - faces, 
+  scale =  1 / 1000) +
+  scale_y_continuous(name = "", breaks = NULL) +
+  scale_x_continuous(name = "", breaks = NULL) + 
+  ggtitle("Manifold Map of OpenFace Embeddings")
 
 ## ----faceImages5000,eval=buildManifolds,echo=F,results='asis'------------
-#  png(filename = "faceshighres.png",
-#      width = 5000, height = 5000, units = 'px',
-#      bg = 'grey5')
-#  manifoldMap(x = faceCoords[facesToPlot,1:2],
-#              n = n, images = 1 - faces, scale =  1 / 1000,
-#              xlab = NULL, ylab = NULL, col.lab = 'gray5',
-#              col.axis = 'gray5')
-#  cat("A high resolution version is available [here](vignettes/faceshighres.png)")
+png(filename = "faceshighres.png", 
+    width = 5000, height = 5000, units = 'px', 
+    bg = 'grey5')
+manifoldMap(x = faceCoords[facesToPlot,1:2], 
+            n = n, images = 1 - faces, scale =  1 / 1000,
+            xlab = NULL, ylab = NULL, col.lab = 'gray5',
+            col.axis = 'gray5')
+cat("A high resolution version is available [here](vignettes/faceshighres.png)")
+
+## ----noface,eval=!buildManifolds,results='asis',echo=F-------------------
+#  cat("The plot is disabled by default because it requires face images from [Labeled Faces in the Wild](http://vis-www.cs.umass.edu/lfw/). To recreate the plot, change the vignette script to point to the downloaded images.")
 
 ## ----stm,echo=F,eval=rebuild---------------------------------------------
 #  library(stm)
@@ -445,17 +474,20 @@ ggplot(combined, aes(x = x,
 #                       breaks = NULL, limits = c(-2.5,2.5)) +
 #    ggtitle("YouTube Communities")
 
-## ----eval=rebuild,echo=T-------------------------------------------------
+## ----lowmemexample,eval=F,echo=T-----------------------------------------
 #  neighbors <- randomProjectionTreeSearch(largeDataset)
 #  neighborIndices <- neighborsToVectors(neighbors)
 #  rm(neighbors)
+#  gc()
 #  distances <- distance(x = largeDataset,
 #                        i = neighborIndices$i,
 #                        j =neighborIndices$j)
 #  rm(largeDataset)
+#  gc()
 #  wij <- buildEdgeMatrix(i = neighborIndices$i,
 #                         j = neighborIndices$j,
 #                         d = distances)
 #  rm(distances, neighborIndices)
+#  gc()
 #  coords <- projectKNNs(wij$wij)
 
