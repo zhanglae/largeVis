@@ -158,17 +158,42 @@ ggplot(ngcoords,
   ggtitle("20 Newsgroups")
 ```
 
-```{r wikiterms,eval=rebuild,echo=F}
+```{r wikiterms,eval=F,echo=F}
 # # The data file must be obtained directly from the paper authors
 wikiwords <- readr::read_delim("/mnt/hfsshare/DATASETS/Wiki_embedding/word_vec",delim= " ", col_names = FALSE, skip = 1)
 wikiwords <- t(as.matrix(wikiwords[, 2:101]))
 set.seed(1974)
 initcoords <- matrix(rnorm(ncol(wikiwords) * 2), nrow = 2)
-wikiVis <- vis(wikiwords, coords = initcoords, K = 100, tree_threshold = 100, 
+wikiVis <- vis(wikiwords, 
+               coords = initcoords, 
+               K = 100, 
+               tree_threshold = 100, 
                n_trees = 50)
-
-
+wikiwords <- readr::read_delim("/mnt/hfsshare/DATASETS/Wiki_embedding/word_vec",delim= " ", col_names = FALSE, skip = 1)
+wikiwords <- wikiwords[,1]$X1
+wikilabels <- readr::read_delim("/mnt/hfsshare/DATASETS/Wiki_embedding/wiki_word_label.txt", 
+                                col_names = FALSE, delim = "\t")
+words <- data.frame(word = wikiwords, 
+                    labelrow = match(wikiwords, wikilabels$X1))
+words$label <- wikilabels$X2[words$labelrow]
+words <- cbind(words, 
+               data.frame(t(wikiVis$coords)))
+colnames(words) <- c('word', 'labelrow', 'label', 'x', 'y')
 ```
+
+```{r drawwikiwords,echo=F,eval=T,warning=F,message=F}
+load(system.file("extdata", "wikiwords.Rda", package = "largeVis"))
+ggplot(words, aes(x = x, y = y, color = label)) + 
+  geom_point(size = 0.01, alpha = 0.5) +
+  scale_color_gradientn(colors = colors_divergent_discrete(11)(11)) +
+  guides(color = FALSE) +
+  scale_x_continuous("", limits = c(-38, 38), breaks = NULL) + 
+  scale_y_continuous("", limits = c(-38, 38), breaks = NULL) +
+  ggtitle(expression(atop("Wiki Word Vectors", atop(paste(sep = " ", "K = 100,", gamma, 
+                           "= 7, M = 5,", alpha, "= 1, n_trees = 50,",
+                           "max_iters = 1, threshold = 100")))))
+```
+
 
 ## Overview of Functions and Hyperparameters
 

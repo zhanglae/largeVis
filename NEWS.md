@@ -3,7 +3,9 @@
 * Neighbor search:
   + Much, much faster and more efficient
   + Tree search for cosine distances uses normalized vectors
-* projectKNNs should be faster because of more efficient scanning for negative samples
+* projectKNNs 
+  + faster because of more efficient scanning for negative samples
+  + Skips negative samples with already-large distances
 * Vignettes:
   + Reuse initialization matrices and neighbors, to make it easier to see the effect of hyperparameters
   + Benchmarks now a separate vignette, more detailed

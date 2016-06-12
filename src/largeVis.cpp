@@ -797,19 +797,21 @@ arma::mat sgd(arma::mat coords,
       vec d_i = d_j;
 
       // Setup negative search
-      vec samples = sort(randu<vec>(M * 2));
+      vec samples = sort(randu<vec>(M));
       vec::iterator targetIt = samples.begin();
-      int sampleIdx = 1;
+      int sampleIdx = 0;
       // The indices of the nodes with edges to i
       int m = 0;
       vec::iterator negativeIterator = negBegin;
       while (m < M) {
-        if (sampleIdx % (M * 2) == 0) {
+        if (sampleIdx % M == 0) {
           samples.randu();
+          samples = sort(samples);
+          targetIt = samples.begin();
           negativeIterator = negBegin;
         }
         // binary search implementing weighted sampling
-        const double target = targetIt[sampleIdx++ % (M * 2)];
+        const double target = targetIt[sampleIdx++ % M];
         int k;
         if (useWeights) k = target * (N - 1);
         else {
@@ -827,7 +829,7 @@ arma::mat sgd(arma::mat coords,
         const vec y_k = coords.col(k);
 
         const double dist_ik = dist(y_i, y_k);
-        if (dist_ik == 0) continue; // Duplicates
+        if (dist_ik == 0 || dist_ik > (14 * (1 + (int) (sampleIdx / M)))) continue; // Duplicates and distances too large to care
 
         const vec d_dist_ik = (y_i - y_k) / sqrt(dist_ik);
 

@@ -19,7 +19,9 @@ require(wesanderson,
         quietly = TRUE)
 require(dplyr, quietly = TRUE)
 knitr::opts_chunk$set(collapse = TRUE, 
-                      comment = "#>")
+                      comment = "#>",
+                      fig.width = 7, 
+                      fig.height = 5)
 colors_discrete <- function(x) rep(wes_palette("Darjeeling", 
                                                n = min(x, 5)), 
                                    2)[1:x]
@@ -72,9 +74,11 @@ The data in the benchmarks below was obtained by running the `benchmark.R` scrip
 
 The aim was to replicate as much as possible the methodology used by Erik Bernhardsson's [ANN Benchmark](https://github.com/erikbern/ann-benchmarks) github.  It is not possible to use the same methods exactly.  This is because `ANN Benchmark` is designed for libraries that are designed to build a neighbor index and then rapidly process queries against the index. The measure used by `ANN Benchmark` is therefore queries-per-second.  By contract, `largeVis` is concerned with getting neighbors for all of the nodes in a finite dataset as quickly as possible. 
 
-The data used is the 1-million vector, 128-feature [SIFT Dataset](http://corpus-texmex.irisa.fr/), which is the test data used by `ANN Benchmark`. 
+Times shown for `RcppAnnoy` include the time to build a searchable index and query neighbors for all rows in the dataset. This is more directly comparable to `largeVis`, and more favorable to `RcppAnnoy` because the time to build the index is amortized over a larger number of rows. 
 
-Resulting times were normalized for each machine against the time for `RcppAnnoy` to identify neighbors for 10,000 vectors using 10 trees. 
+Times are expressed in number of rows per minute, for ease of comparison with `ANN Benchmark`. Tests were run on two machines, however each chart below shows results from only one. 
+
+The data used is the 1-million vector, 128-feature [SIFT Dataset](http://corpus-texmex.irisa.fr/), which is the test data used by `ANN Benchmark`. 
 
 Results that appear to have used virtual memory, in that the completion time was radically discontinuous with other results from the same machine, were discarded. 
 
@@ -86,9 +90,7 @@ The following chart illustrates performance versus the `Annoy` library, as imple
 
 To facilitate comparison with the ANN Benchmark charts, the Y-axis shows $\log(1 / t)$, where $t$ is the execution time relative to the time on the same machine to find neighbors for 10,000 rows using 10 trees. 
 
-```{r performance,echo=F,eval=rebuild}
-# benchmark <- readr::read_csv(system.file("extdata", "results.csv", package="largeVis"), 
-#                              col_names = FALSE)
+```{r performance,echo=F,eval=F}
 benchmark1 <- readr::read_csv("../inst/results.csv", col_names = FALSE)
 benchmark1$machine <- 1
 benchmark2 <- readr::read_csv("../inst/nelsonresults.csv", col_names = FALSE)
@@ -114,166 +116,120 @@ benchmark <- rbind(benchmark1, benchmark2, benchmark3) %>%
          series = factor(series), 
          method = factor(method)) %>%
   group_by(machine) %>%
-  mutate(time = time / min(time))
-
-#benchmark[(benchmark$n_trees == 10 & benchmark$method == 'RcppAnnoy'),]
-
-# benchmark$time <- benchmark$time / ifelse(benchmark$machine == 1, 1.444920, 1.535254)
-
+  mutate(time = 1 / (time / 1e6), 
+         nn = threshold * n_trees)
 ```
 
 
-```{r plotpeformance,echo=F,fig.width=6,fig.height=6,fig.align='center',warning=FALSE,message=FALSE}
+```{r plotpeformance,echo=F,fig.align='center',warning=FALSE,message=FALSE}
 load(system.file("extdata", "benchmark.Rda", package = "largeVis"))
 benchmark %>% 
-  dplyr::filter(series != 'RcppAnnoy') %>%
+  dplyr::filter(series != 'RcppAnnoy', 
+                machine == 2) %>%
   mutate(facet = precision / 100, 
          facet = ifelse(facet < 0.9, '', 'Closeup'), 
          facet = factor(facet)) %>%
-  ggplot(aes(y = 1 / time, 
+  ggplot(aes(y = time, 
                       x = (precision / 100), 
                       group = series, 
                       color = series, 
-                      shape = method)) +
-  geom_point(size = 1.5, alpha = 0.8) + 
+                      shape = series)) +
+  geom_point(size = 1.5, alpha = 0.7) + 
  # geom_line(size = 0.5) + 
   # geom_text(size = 3, 
   #           nudge_x = 10) +
-  scale_y_log10(name = "Time, log (speed relative to RcppAnnoy with 10 trees)") + 
+  scale_y_log10(name = "Speed, log (rows / minute)", limits = c(1e3,1e6)) + 
   scale_x_continuous("Precision", 
                # limits = c(0,1), 
                 breaks = c(0, 0.2, 0.4, 0.6, 0.8, 0.925, 0.95, 0.975, 1.0)) +
   facet_grid(. ~ facet, scales = "free_x") +
-  scale_color_manual(values =      colors_divergent_discrete(nlevels(benchmark$series))(nlevels(benchmark$series))) +
-  guides(color = guide_legend(nrow=3)) +
+  scale_color_manual(name = "Method & n. iterations", 
+                     values = colors_divergent_discrete(nlevels(benchmark$series))(nlevels(benchmark$series))) +
+  scale_shape_manual(name = "Method & n. iterations", 
+                     values = c(16, 16, 16, 16, 17)) +
+ # guides(color = guide_legend(nrow=3)) +
   ggtitle(expression(
-    atop("Time vs. Error Rate (K = 100, n = 10000)",
+    atop("Speed vs. Precision (K = 100, n = 10000)",
          atop(italic("(Upper Right is Better)"))
          )
     ))
 ```
 
-This plot shows times for `RcppAnnoy` to find neighbors for all vertices in the dataset.  
 
-## Number of Trees
+## Equivalence of Number of Trees and Tree Threshold
 
-```{r n_trees,echo=F,fig.width=5,fig.height=7}
+There is an approximate trade-off in memory use between the tree threshold and number of trees.  Peak memory consumption during the tree search phase = N * n_trees * threshold.
+
+The trade-off is not precise because the tree split phase may return fewer nodes, per tree, than the threshold. 
+
+On the following chart, points that share the same color share the same values of n_trees * threshold (and number of neighborhood exploration iterations). 
+
+```{r constn,echo=F,warning=F}
 bench <- benchmark %>%
-  filter(method == 'largeVis') %>%
-  select(-series) %>%
-  mutate(seriesa = paste(machine, method, threshold, max_iters))
-bench$series <- factor(bench$seriesa)
-bench %>% 
-  group_by(series) %>% 
-  filter(n() > 1, 
-         max_iters < 2) %>%
-  arrange(n_trees) %>%
-  ungroup() %>%
-  ggplot(aes(y = 1 / time, 
-             x = (precision / 100), 
-             color = series, 
-             group = series)) + 
-  geom_path(size = 0.5, 
-            arrow = arrow(length = unit(0.05, "inches"))) +
-  geom_point(size = 0.5) +
-  facet_grid(threshold ~ max_iters) +
-  scale_y_log10(name = "Time, log (speed relative to RcppAnnoy with 10 trees)") + 
+  filter(machine == 2, 
+         method == 'largeVis') %>%
+  mutate(nn = threshold * n_trees) %>% 
+  group_by(max_iters, nn)  %>% 
+  filter(n() > 2) %>% 
+  mutate(series = paste(max_iters, nn),
+         facet = precision / 100)
+bench$facet <- factor(ifelse(bench$facet < 0.9, "", "Closeup"))
+bench %>%
+  ggplot(aes(y = time, 
+           x = precision / 100, 
+           color = series, 
+           group = series)) + 
+  geom_point(size = 1.5, alpha = 0.8, shape = 16) +
+#  guides(color = FALSE) +
+  scale_shape(name = "Iterations", solid = FALSE) +
+  facet_grid(. ~ facet, scales = 'free_x') +
+  scale_y_log10(name = "Speed, log (rows / minute)", limits = c(1e3,1e6)) + 
   scale_x_continuous("Precision", 
-                limits = c(0,1), 
-                breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1.0)) +
-  guides(color = FALSE) +
-  # scale_color_manual(values =      colors_divergent_discrete(nlevels(benchmark$series))(nlevels(benchmark$series))) +
-  ggtitle(expression(
-    atop("Time vs. Precision Rate (K = 100, n = 10000)",
-         atop(italic("(Upper Right is Better)"))
-         )
-    ))
+                breaks = c(0, 0.2, 0.4, 0.6, 0.8, 0.9, 0.925, 0.95, 0.975, 1.0)) +  ggtitle(expression(
+    atop("Speed vs. Precision (K = 100, n = 10000)",
+         atop(italic("(Upper Right is Better)")))))
 ```
 
-Increasing the number of trees increases the time to complete the tree-search portion of the algorithm linearly. The marginal benefit of doubling the number of trees declines rapidly.
+Results with constant n_trees * threshold tend to cluster together as expected. 
 
-## Tree Threshold
+In general, with n_trees * threshold held constant, increasing the number of trees tends to improve accuracy and increase execution time. 
 
-The tree threshold is the maximum number of nodes in a leaf during the tree-search phase.  
+On the charts below, n_trees * threshold is referred to as `nn`.
 
-The Annoy library fixes the threshold as equivalent to 
-         facet = precision / 100, 
-         facet = ifelse(facet < 0.9, '', 'Closeup'))
+## Effect of Increasing `nn` vs. `max_iters`
+
+
 ```{r tree_threshold,echo=F}
 bench <- benchmark %>%
-  filter(method == 'largeVis') %>%
-  select(-series) %>%
-  mutate(seriesa = paste(machine, n_trees, max_iters))
-bench$series <- factor(bench$seriesa)
-bench %<>%
-  select(-n_trees, -max_iters, -method, -machine) %>%
-  group_by(series) %>% 
-  filter(n() > 1) %>%
+  filter(method == 'largeVis', 
+         machine == 2) %>%
   mutate(label = ifelse(threshold == 128, "128", "Other"), 
          label = factor(label), 
          facet = precision / 100, 
-         facet = ifelse(facet < 0.9, '', 'Closeup'))
+         facet = ifelse(facet < 0.95, '', 'Closeup'))
 bench$facet <- factor(bench$facet)
 bench %>% 
-  arrange(threshold) %>%
-  ggplot(aes(y = 1/time, 
+  arrange(nn) %>%
+  mutate(max_iters = factor(max_iters)) %>%
+  ggplot(aes(y = time, 
              x = precision / 100, 
-             color = series, 
-             group = series, 
-             shape = label)) + 
-  geom_path(size = 0.5, alpha =0.8, arrow = arrow(length = unit(0.05, "inches"))) +
-  geom_point(size = 1.5) +
+             color = max_iters, 
+             group = max_iters)) + 
+#  geom_path(size = 0.5, alpha =0.8, arrow = arrow(length = unit(0.05, "inches"))) +
+  geom_point(size = 1, alpha = 0.8, shape = 16) +
   facet_grid(. ~ facet, scales = 'free_x') +
-  scale_y_log10(name = "Time, log (speed relative to RcppAnnoy with 10 trees)") + 
+  scale_y_log10(name = "Speed, log (rows / minute)", limits = c(1e3,1e6)) + 
   scale_x_continuous("Precision", 
-                breaks = c(0, 0.2, 0.4, 0.6, 0.8, 0.925, 0.95, 0.975, 1.0)) +
-  scale_shape_discrete(name = "", solid = FALSE) + 
-    guides(color = FALSE) +
-  # scale_color_manual(values =      colors_divergent_discrete(nlevels(benchmark$series))(nlevels(benchmark$series))) +
+                breaks = c(0, 0.2, 0.4, 0.6, 0.8, 0.96, 0.97, 0.98, 0.99, 1.0)) +
+ # scale_shape_discrete(name = "", solid = FALSE) + 
+ #   guides(color = FALSE) +
+   scale_color_manual("n. iterations", values = colors_discrete(4)) +    
   ggtitle(expression(
-    atop("Time vs. Precision (K = 100, n = 10000)",
+    atop("Speed vs. Precision (K = 100, n = 10000)",
          atop(italic("(Upper Right is Better)"))
          )
     ))
 ```
 
-## Effect of Increasing The Number of Iterations
+A single iteration clearly has substantial impact on accuracy. The marginal benefit of additional iterations declines, but adding a second iteration is a more efficient way to improve accuracy than increasing `nn`.  This is consistent with the recommendation of the paper authors.
 
-```{r max_iters,echo=F}
-bench <- benchmark %>%
-  filter(method == 'largeVis') %>%
-  select(-series) %>%
-  mutate(series = paste(machine, n_trees, threshold))
-bench$series <- factor(bench$series)
-bench %>%
-  select(-n_trees, -threshold, -method, -machine) %>%
-  group_by(series) %>% 
-  filter(n() > 1) %>%
-  mutate(facet = precision / 100, 
-         facet = ifelse(facet < 0.9, '', 'Closeup'), 
-         facet = factor(facet), 
-         shape = ifelse(max_iters == 1, '1', 'Other'), 
-         shape = ifelse(max_iters == 0, '0', shape), 
-         shape = ifelse(max_iters > 1, '> 1', shape), 
-         shape = factor(shape)) %>%
-  arrange(max_iters) %>%
-  ggplot(aes(y = 1 / time, 
-             x = precision / 100, 
-             color = series, 
-             group = series,
-             shape = shape)) + 
-  geom_line(size = 0.2, arrow = arrow(length = unit(0.05, "inches"))) +
-  geom_point(size = 1.5, alpha = 0.8) +
-  facet_grid(. ~ facet, scales = 'free_x') +
-  guides(color = FALSE) +
-  scale_shape(name = "Iterations", solid = FALSE) +
-  scale_y_log10(name = "Time, log (speed relative to RcppAnnoy with 10 trees)") + 
-  scale_x_continuous("Precision", 
-                breaks = c(0, 0.2, 0.4, 0.6, 0.8, 0.9, 0.95, 0.975, 1.0)) +  ggtitle(expression(
-    atop("Time vs. Precision (K = 100, n = 10000)",
-         atop(italic("(Upper Right is Better)"))
-         )
-    ))
-```
-
-The data shows a consistent pattern where adding a single iteration has, a substantial impact on accuracy, but the marginal benefit of additional iterations is low.  This is consistent with the recommendation of the paper authors.
